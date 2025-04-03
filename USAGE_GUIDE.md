@@ -8,14 +8,14 @@ This guide provides detailed instructions and best practices for using the Conte
 - [Installation and Setup](#installation-and-setup)
 - [Basic Usage Workflows](#basic-usage-workflows)
 - [Advanced Configuration](#advanced-configuration)
-- [Understanding Optimization Rules](#understanding-optimization-rules)
+- [Specialized Content Helpers](#specialized-content-helpers)
 - [Interpreting Reports](#interpreting-reports)
 - [Troubleshooting](#troubleshooting)
 - [Use Cases and Examples](#use-cases-and-examples)
 
 ## Understanding How Content Optimizer Works
 
-Content Optimizer uses regular expression patterns defined in `optimization_rules.py` to identify and remove common "noise" elements from text content. These elements typically include:
+Content Optimizer uses specialized content helpers and regular expression patterns to identify and remove common "noise" elements from text content. These elements typically include:
 
 - Website navigation menus, headers, and footers
 - Contact forms and subscription boxes
@@ -23,16 +23,23 @@ Content Optimizer uses regular expression patterns defined in `optimization_rule
 - Redundant information and formatting
 - Policy content (optional)
 
-The tool works in two primary modes:
+The tool now features several specialized modes:
 
+- **auto mode**: Automatically detects content type and applies the best optimizations
 - **docs mode**: More aggressive optimization suitable for web content and documentation
 - **code mode**: More conservative optimization suitable for source code repositories
+- **notion mode**: Specialized handling for Notion.so exports
+- **email mode**: Optimized for email content and threads
+- **markdown mode**: Focused on cleaning up Markdown and HTML content
 
 The optimization process follows these steps:
 
-1. **Input Processing**: Read content from a directory or a Repomix file
-2. **Optimization**: Apply regex patterns to remove noise elements
-3. **Output Generation**: Produce a cleaned file and a detailed report
+1. **Content Detection**: Automatically identify content type if in auto mode
+2. **Input Processing**: Read content from a directory or a file
+3. **Preprocessing**: Prepare content for specific optimizations 
+4. **Optimization**: Apply specialized rules based on content type
+5. **Postprocessing**: Apply final clean-up and formatting
+6. **Output Generation**: Produce a cleaned file and a detailed report
 
 ## Installation and Setup
 
@@ -52,8 +59,8 @@ source venv/bin/activate
 # On Windows:
 venv\Scripts\activate
 
-# Install optional dependencies
-pip install tiktoken gitignore-parser
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Verifying Your Installation
@@ -68,34 +75,54 @@ This should display the help message with all available options.
 
 ## Basic Usage Workflows
 
-### Workflow 1: Optimizing Documentation for an LLM
+### Workflow 1: Auto-detection (Recommended)
+
+```bash
+# Let the tool automatically detect and optimize content
+python optimize.py -a ./mixed-content
+
+# Or use the quick script
+./optimize-quick.sh auto ./mixed-content
+```
+
+### Workflow 2: Optimizing Documentation for an LLM
 
 ```bash
 # Basic documentation optimization
 python optimize.py -d ./my-docs -m docs
 
-# Specifying custom output location
-python optimize.py -d ./my-docs -o ./optimized/clean-docs.md -m docs --report_file ./optimized/report.md
+# Using the quick script
+./optimize-quick.sh docs ./my-docs
 ```
 
-### Workflow 2: Processing a Source Code Repository
+### Workflow 3: Processing a Source Code Repository
 
 ```bash
 # Process source code with less aggressive optimization
 python optimize.py -d ./my-code-repo -m code
 
-# Focus only on specific file types
-python optimize.py -d ./my-code-repo -m code --extensions .py,.js,.md
+# Using the quick script
+./optimize-quick.sh code ./my-code-repo
 ```
 
-### Workflow 3: Processing a Repomix File
+### Workflow 4: Processing a Notion Export
 
 ```bash
-# Process a standard Repomix file
-python optimize.py -i ./repomix-output.txt -m docs
+# Process a Notion export with specialized handling
+python optimize.py -n ./my-notion-export
 
-# Process a Repomix file but keep policy pages
-python optimize.py -i ./repomix-output.txt -m docs --no-policy-filter
+# Using the quick script
+./optimize-quick.sh notion ./my-notion-export
+```
+
+### Workflow 5: Processing Email Content
+
+```bash
+# Process email files with specialized handling
+python optimize.py -d ./email-archives -m email
+
+# Using the quick script
+./optimize-quick.sh email ./my-email-archive
 ```
 
 ## Advanced Configuration
@@ -111,7 +138,7 @@ python optimize.py -d ./content --extensions .md,.txt,.html,.rst
 # Ignore specific patterns
 python optimize.py -d ./content --ignore "draft/,*-old.md,_archive/,temp/"
 
-# Respect .gitignore rules (requires gitignore-parser package)
+# Respect .gitignore rules
 python optimize.py -d ./repo --use-gitignore
 ```
 
@@ -136,17 +163,99 @@ Control where output files are saved:
 python optimize.py -d ./input -o ./output/clean.md --report_file ./reports/details.md
 ```
 
-## Understanding Optimization Rules
+## Specialized Content Helpers
 
-The optimization rules are defined in `optimization_rules.py` as regular expressions. They're ordered from most specific to most general to avoid over-removing content:
+The optimizer now includes specialized helpers for different content types, each with its own optimization logic and capabilities:
 
-1. **Metadata/Artifacts**: Specific publisher metadata, tracking elements
-2. **Website Chrome**: Navigation, headers, footers, sidebars
-3. **Prompts/Forms**: Comment prompts, contact forms, subscription boxes
-4. **Links/Tracking**: Redundant links, tracking pixels
-5. **Formatting/Structure**: Excessive spacing, redundant headers
+### Auto-detection (Recommended)
 
-You can examine the report after optimization to see which rules were triggered and how frequently.
+**Purpose**: Automatically detects the most appropriate content type for each file.
+
+**Key Features**:
+- Analyzes each file individually to determine its content type
+- Applies specialized optimizations based on detected type
+- Provides detailed report on detected content types and optimizations
+- Handles mixed content repositories effectively
+
+**Usage**:
+```bash
+python optimize.py -a ./mixed-content
+```
+
+### Notion Helper
+
+**Purpose**: Handles Notion.so exports with embedded content IDs.
+
+**Key Features**:
+- Cleans Notion IDs from filenames for readability while preserving them in a reference table
+- Converts Notion properties blocks to standard YAML frontmatter
+- Handles Notion-specific artifacts and formatting
+- Processes Notion callouts and toggle blocks
+
+**Usage**:
+```bash
+python optimize.py -n ./my-notion-export
+```
+
+### Email Helper
+
+**Purpose**: Processes email content and threads.
+
+**Key Features**:
+- Parses .eml files and other email content
+- Cleans up email headers, signatures, and disclaimers
+- Handles quoted replies with configurable depth retention
+- Processes email footers and forwarded messages
+
+**Usage**:
+```bash
+python optimize.py -d ./email-archives -m email
+```
+
+### Code Helper
+
+**Purpose**: Handles source code files with language-specific optimizations.
+
+**Key Features**:
+- Detects programming language automatically
+- Preserves code structure and important comments
+- Handles import statements and boilerplate
+- Language-specific optimizations for Python, JavaScript, etc.
+
+**Usage**:
+```bash
+python optimize.py -d ./source-code -m code
+```
+
+### Documentation Helper
+
+**Purpose**: Processes documentation content with focus on readability.
+
+**Key Features**:
+- Handles markdown headings, code blocks, and tables properly
+- Cleans navigation elements while preserving structure
+- Handles tables of contents and breadcrumbs
+- Preserves important version information
+
+**Usage**:
+```bash
+python optimize.py -d ./documentation -m docs
+```
+
+### Markdown Helper
+
+**Purpose**: Optimizes Markdown and HTML content with focus on content.
+
+**Key Features**:
+- Handles mixed Markdown and HTML content
+- Cleans unnecessary HTML while preserving structure
+- Processes images, links, and formatting
+- Handles YAML frontmatter
+
+**Usage**:
+```bash
+python optimize.py -d ./markdown-content -m markdown
+```
 
 ## Interpreting Reports
 
@@ -155,16 +264,15 @@ The generated report provides valuable insights into the optimization process:
 ### Key Report Sections
 
 1. **Configuration Summary**: Shows input source, mode, and scan configuration
-2. **Optimization Statistics**: Character and token counts before and after optimization
-3. **Optimizations Applied**: Summarizes which categories of optimizations were most common
-4. **Rule Trigger Statistics**: Detailed breakdown of how many times each rule was triggered
-5. **Policy Pages Handling**: Lists which files were identified as policy pages (if any)
-6. **Warnings**: Any issues encountered during processing
+2. **Content Type Detection**: (Auto mode only) Breakdown of detected content types
+3. **Optimization Statistics**: Character and token counts before and after optimization
+4. **Optimizations Applied**: Details the specific optimizations that were performed
+5. **Warnings and Issues**: Lists any problems encountered during processing
 
 ### Analyzing Effectiveness
 
 - **Character/Token Reduction**: Higher percentages indicate more noise was removed
-- **Most Frequent Optimizations**: Shows what types of noise dominated your content
+- **Content Type Distribution**: Shows the mix of content in your repository (in auto mode)
 - **Processing Speed**: Can help identify if there were performance issues
 
 ## Troubleshooting
@@ -173,11 +281,11 @@ The generated report provides valuable insights into the optimization process:
 
 #### Issue: Missing Optional Dependencies
 
-**Symptoms**: Warnings about tiktoken or gitignore-parser being unavailable.
+**Symptoms**: Warnings about tiktoken, gitignore-parser, or other libraries being unavailable.
 
 **Solution**: Install the missing packages:
 ```bash
-pip install tiktoken gitignore-parser
+pip install tiktoken gitignore-parser pygments beautifulsoup4
 ```
 
 #### Issue: No Files Found During Directory Scan
@@ -195,14 +303,16 @@ pip install tiktoken gitignore-parser
 
 **Solutions**:
 - Try using `code` mode instead of `docs` mode for less aggressive optimization
-- Check the report to see which rules were triggered most frequently
-- Consider modifying the patterns in `optimization_rules.py` if needed
+- Check if auto-detection incorrectly classified your content
+- Check the report to see which optimizations were applied
 
-#### Issue: Policy Filter Removing Needed Content
+#### Issue: Content Detection Not Working as Expected
 
-**Symptoms**: Important files are being identified as policy pages and excluded.
+**Symptoms**: Files are being optimized with the wrong content helper.
 
-**Solution**: Use the `--no-policy-filter` option to include all content.
+**Solution**:
+- Specify the mode explicitly instead of using auto-detection
+- Check file extensions to ensure they match the content type
 
 ## Use Cases and Examples
 
@@ -218,31 +328,19 @@ This setup:
 - Ignores drafts, archive materials, and images directories
 - Respects any .gitignore rules in the repository
 
-### Use Case 2: Preparing Multiple Github Repositories
-
-Create a shell script (`batch-optimize.sh`):
+### Use Case 2: Preparing Mixed Repository Content
 
 ```bash
-#!/bin/bash
-REPOS_DIR="./repositories"
-OUTPUT_DIR="./optimized-repos"
-
-mkdir -p $OUTPUT_DIR
-
-for repo in $(ls $REPOS_DIR); do
-  echo "Processing repository: $repo"
-  python optimize.py -d "$REPOS_DIR/$repo" -m code \
-    -o "$OUTPUT_DIR/$repo-optimized.md" \
-    --report_file "$OUTPUT_DIR/$repo-report.md" \
-    --use-gitignore
-done
+python optimize.py -a ./mixed-repository \
+    -o ./optimized/cleaned-content.md \
+    --report_file ./optimized/report.md
 ```
 
-Make it executable and run:
-```bash
-chmod +x batch-optimize.sh
-./batch-optimize.sh
-```
+This workflow:
+- Automatically detects and applies the best optimization for each file type
+- Handles code, documentation, markup, and other content types appropriately
+- Generates a detailed report showing content type distribution
+- Outputs all optimized content to a single file for easy reference
 
 ### Use Case 3: Optimizing a Large Documentation Site Scrape
 
@@ -259,20 +357,34 @@ This setup:
 - Filters out policy pages
 - Outputs to a single markdown file
 
-### Use Case 4: Preparing Context for a RAG System
+### Use Case 4: Processing Email Threads for Context Retrieval
 
 ```bash
-# First optimize the content
-python optimize.py -d ./knowledge-base -m docs -o ./processed/cleaned-kb.md
-
-# Then you can use the optimized content in your RAG system
-# (Example command for a hypothetical embedding tool)
-embed-tool process --input ./processed/cleaned-kb.md --output ./embeddings/kb-embeddings
+python optimize.py -d ./email-export -m email \
+    --extensions .eml,.txt --ignore "spam/,drafts/" \
+    -o ./processed/emails-cleaned.md
 ```
 
-This workflow:
-1. Optimizes a knowledge base to remove noise and reduce token usage
-2. Uses the cleaned content for embedding generation in a RAG system
+This setup:
+- Processes .eml and .txt files containing email content
+- Ignores spam and drafts folders
+- Removes email signatures, disclaimers, and repeated headers
+- Limits quote depth to enhance readability
+- Outputs to a single markdown file for easy reference
+
+### Use Case 5: Processing a Notion Export for Documentation
+
+```bash
+python optimize.py -n ./notion-export \
+    -o ./cleaned/notion-content.md \
+    --report_file ./cleaned/notion-report.md
+```
+
+This setup:
+- Processes Notion export content with specialized handling
+- Cleans up Notion IDs from filenames while preserving the references
+- Converts Notion properties blocks to YAML frontmatter
+- Optimizes Notion-specific artifacts and formatting
 
 ## Conclusion
 
@@ -282,4 +394,4 @@ Content Optimizer offers a powerful way to prepare text content for LLM consumpt
 - Improve the signal-to-noise ratio of your content
 - Focus the LLM on the most important information
 
-Experiment with different configurations to find the optimal balance between noise removal and content preservation for your specific use case.
+With specialized content helpers, you can now achieve even better results across different content types. Experiment with different configurations to find the optimal balance between noise removal and content preservation for your specific use case.
