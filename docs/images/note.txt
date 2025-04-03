@@ -1,0 +1,6 @@
+Place a demo.gif or screenshot.png here to show the tool in action for the README.
+
+To create a GIF demo, you can use a tool like:
+- Terminalizer (https://github.com/faressoft/terminalizer)
+- asciinema (https://asciinema.org/) + svg-term-cli
+- Or record your screen and convert to GIF using tools like ScreenToGif
