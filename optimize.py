@@ -363,6 +363,22 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
                                 scan_use_gitignore: bool, policy_filter: bool):
     """
     Process a directory using specialized content helpers based on mode.
+    
+    This function coordinates the entire optimization process:
+    1. Scan the directory for files matching criteria
+    2. Initialize the appropriate content helper
+    3. Process each file with the helper
+    4. Write optimized content and generate report
+    
+    Args:
+        input_dir: Path to input directory
+        output_filename: Path for output file
+        mode: Optimization mode (docs, code, notion, email, markdown, auto)
+        report_filename: Path for report file
+        scan_extensions: Set of file extensions to include
+        scan_ignore_patterns: List of glob patterns to ignore
+        scan_use_gitignore: Whether to respect .gitignore rules
+        policy_filter: Whether to filter policy pages
     """
     start_time = time.time()
     processing_warnings = []
@@ -372,34 +388,88 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     optimized_tokens = -1
     files_processed = 0
     files_skipped = 0
+    policy_pages_skipped = 0
+    policy_pages_list = []
 
     print_header(f"Starting Content Optimization")
     print_info(f"Mode: {mode}, Input: {input_dir}")
     print_info(f"Output: {output_filename}, Report: {report_filename}")
 
     # Scan directory for files
-    file_paths, files_skipped_scan = scan_directory(
-        input_dir, scan_extensions, scan_ignore_patterns, scan_use_gitignore, processing_warnings
-    )
-    files_skipped += files_skipped_scan
+    try:
+        file_paths, files_skipped_scan = scan_directory(
+            input_dir, scan_extensions, scan_ignore_patterns, scan_use_gitignore, processing_warnings
+        )
+        files_skipped += files_skipped_scan
+    except Exception as e:
+        error_msg = f"Directory scan failed: {str(e)}"
+        print_error(error_msg)
+        processing_warnings.append(error_msg)
+        # Generate minimal report with error info and exit
+        report_stats = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "mode": mode,
+            "input_source": input_dir,
+            "source_type": "Directory Scan",
+            "output_file": output_filename,
+            "processing_time": time.time() - start_time,
+            "warnings": [error_msg],
+            "error": error_msg
+        }
+        try:
+            generate_report(report_filename, report_stats)
+        except:
+            pass  # Last resort - if even report generation fails
+        return
 
     if not file_paths:
         print_warning("No processable files found matching the criteria.")
         processing_warnings.append("No processable files found matching the criteria.")
+        # Generate empty report and exit
+        report_stats = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "mode": mode,
+            "input_source": input_dir,
+            "source_type": "Directory Scan",
+            "output_file": output_filename,
+            "files_processed": 0,
+            "files_skipped": files_skipped,
+            "processing_time": time.time() - start_time,
+            "warnings": processing_warnings
+        }
+        generate_report(report_filename, report_stats)
         return
 
-    # Auto-detect mode or use specific helper based on mode
-    if mode == "auto":
-        print_info("Using auto-detection mode to process files")
-        optimizer = get_unified_optimizer(default_mode="docs")
-    else:
-        print_info(f"Using {mode} mode to process all files")
-        try:
-            helper_class = get_content_helper(mode)
-        except ValueError:
-            print_error(f"Invalid mode: {mode}. Using docs mode as fallback.")
-            helper_class = get_content_helper("docs")
-            mode = "docs"
+    # Initialize appropriate helper based on mode
+    try:
+        if mode == "auto":
+            print_info("Using auto-detection mode to process files")
+            optimizer = get_unified_optimizer(default_mode="docs")
+        else:
+            print_info(f"Using {mode} mode to process all files")
+            try:
+                helper_class = get_content_helper(mode)
+            except ValueError:
+                print_error(f"Invalid mode: {mode}. Using docs mode as fallback.")
+                helper_class = get_content_helper("docs")
+                mode = "docs"
+                processing_warnings.append(f"Invalid mode '{mode}'. Fell back to 'docs' mode.")
+    except Exception as e:
+        error_msg = f"Failed to initialize content helper: {str(e)}"
+        print_error(error_msg)
+        processing_warnings.append(error_msg)
+        report_stats = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "mode": mode,
+            "input_source": input_dir,
+            "source_type": "Directory Scan",
+            "output_file": output_filename,
+            "processing_time": time.time() - start_time,
+            "warnings": processing_warnings,
+            "error": error_msg
+        }
+        generate_report(report_filename, report_stats)
+        return
 
     # Process the files
     print_header(f"Optimizing {len(file_paths)} Files")
@@ -408,12 +478,17 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
 
     # Add directory structure
-    dir_structure = generate_directory_tree(file_paths, clean_notion_ids=(mode == "notion"))
-    processed_content_sections.append("# Directory Structure")
-    processed_content_sections.append(dir_structure)
-    processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
-    processed_content_sections.append("# Files")
-    processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+    try:
+        dir_structure = generate_directory_tree(file_paths, clean_notion_ids=(mode == "notion"))
+        processed_content_sections.append("# Directory Structure")
+        processed_content_sections.append(dir_structure)
+        processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+        processed_content_sections.append("# Files")
+        processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+    except Exception as e:
+        processing_warnings.append(f"Failed to generate directory tree: {str(e)}")
+        print_warning(f"Failed to generate directory tree: {e}")
+        # Continue processing even if directory tree generation fails
 
     # Set up tracking for original content to calculate tokens
     all_original_content = ""
@@ -436,6 +511,8 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
             # Check policy filtering
             if policy_filter and hasattr(rules, 'is_policy_page') and rules.is_policy_page(rel_path, file_content):
                 processing_warnings.append(f"Skipped policy page: {rel_path}")
+                policy_pages_skipped += 1
+                policy_pages_list.append(rel_path)
                 files_skipped += 1
                 continue
 
@@ -445,23 +522,32 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
             all_original_content += file_content + "\n\n"  # For token calculation
 
             # Process with appropriate helper
-            if mode == "auto":
-                optimized_content, stats = optimizer.optimize_file(file_path, file_content)
-                if "detection" in stats and "type" in stats["detection"]:
-                    detected_types[stats["detection"]["type"]] += 1
-            else:
-                helper = helper_class()
-                optimized_content, stats = helper.process_file(file_path, file_content)
+            try:
+                if mode == "auto":
+                    optimized_content, stats = optimizer.optimize_file(file_path, file_content)
+                    if "detection" in stats and "type" in stats["detection"]:
+                        detected_types[stats["detection"]["type"]] += 1
+                else:
+                    helper = helper_class()
+                    optimized_content, stats = helper.process_file(file_path, file_content)
 
-            # Update aggregated stats
-            for stat_name, count in stats.items():
-                if isinstance(count, (int, float)):
-                    aggregated_stats[stat_name] += count
+                # Update aggregated stats
+                for stat_name, count in stats.items():
+                    if isinstance(count, (int, float)):
+                        aggregated_stats[stat_name] += count
 
-            # Add to processed content
-            processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
-            processed_content_sections.append(optimized_content)
-            files_processed += 1
+                # Add to processed content
+                processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
+                processed_content_sections.append(optimized_content)
+                files_processed += 1
+            except Exception as e:
+                error_msg = f"Helper processing error on {rel_path}: {e}"
+                print_warning(error_msg)
+                processing_warnings.append(error_msg)
+                # Add original content to preserve the file in output
+                processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
+                processed_content_sections.append(file_content)
+                files_processed += 1  # Still count it as processed
 
         except Exception as e:
             error_msg = f"Error processing {rel_path}: {e}"
@@ -474,15 +560,25 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
 
     # Calculate original tokens if tiktoken is available
     if TIKTOKEN_AVAILABLE and all_original_content:
-        original_tokens = count_tokens(all_original_content)
+        try:
+            original_tokens = count_tokens(all_original_content)
+        except Exception as e:
+            print_warning(f"Token counting failed: {e}")
+            processing_warnings.append(f"Token counting failed: {e}")
+            original_tokens = -1
 
     # Assemble final content
     final_output = "\n\n".join(processed_content_sections)
     optimized_chars = len(final_output)
     
     # Calculate optimized tokens
-    if TIKTOKEN_AVAILABLE:
-        optimized_tokens = count_tokens(final_output)
+    if TIKTOKEN_AVAILABLE and original_tokens > -1:
+        try:
+            optimized_tokens = count_tokens(final_output)
+        except Exception as e:
+            print_warning(f"Token counting failed: {e}")
+            processing_warnings.append(f"Token counting failed: {e}")
+            optimized_tokens = -1
 
     # Calculate reductions
     char_reduction = -1.0
@@ -527,6 +623,8 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     print_success(f"Files Processed: {files_processed}")
     if files_skipped > 0:
         print_info(f"Files Skipped: {files_skipped}")
+    if policy_pages_skipped > 0:
+        print_info(f"Policy Pages Skipped: {policy_pages_skipped}")
     
     processing_time = time.time() - start_time
     print_success(f"Optimization complete in {processing_time:.2f} seconds")
@@ -546,6 +644,9 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
         "token_reduction": token_reduction,
         "files_processed": files_processed,
         "files_skipped": files_skipped,
+        "policy_pages_skipped": policy_pages_skipped,
+        "policy_pages_list": policy_pages_list,
+        "policy_filter_enabled": policy_filter,
         "processing_time": processing_time,
         "warnings": processing_warnings,
         "scan_extensions": ','.join(sorted(list(scan_extensions))),
@@ -560,6 +661,7 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
         print_success(f"Report generated: {report_filename}")
     except Exception as e:
         print_error(f"Failed to generate report: {e}")
+        processing_warnings.append(f"Report generation error: {e}")
 
 def generate_report(report_filename: str, stats: dict):
     """

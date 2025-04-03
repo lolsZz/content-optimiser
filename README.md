@@ -182,6 +182,7 @@ The script generates two files:
 For more details, see:
 - [USAGE_GUIDE.md](USAGE_GUIDE.md) - Comprehensive guide with examples and configuration options
 - [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Overview of project structure for developers
+- [HELPER_CONFIG.md](HELPER_CONFIG.md) - Detailed configuration options for content helpers
 
 ## 🤝 Contributing
 

@@ -1,13 +1,13 @@
-# Core dependencies
-tqdm>=4.65.0
+# Core dependencies - required for basic functionality
+tqdm>=4.65.0,<5.0.0
 
-# For content detection and processing
-pygments>=2.15.0
-beautifulsoup4>=4.12.0
+# Content detection and processing
+pygments>=2.15.0,<3.0.0
+beautifulsoup4>=4.12.0,<5.0.0
 
-# For email parsing
-mail-parser>=3.15.0
+# Email parsing
+mail-parser>=3.15.0,<4.0.0
 
-# Optional dependencies
-tiktoken>=0.5.1
-gitignore-parser>=0.0.8
+# Optional dependencies for enhanced functionality
+tiktoken>=0.5.1,<0.6.0            # for token counting (OpenAI models)
+gitignore-parser>=0.0.8,<0.1.0    # for respecting .gitignore rules
