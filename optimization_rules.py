@@ -1,3 +1,5 @@
+import re  # Add missing import at the top of the file
+
 # optimization_rules.py
 # ... (other rules remain the same) ...
 
