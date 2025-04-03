@@ -1,4 +1,7 @@
 #!/bin/bash
+# Make the script executable by default
+chmod +x "$0"
+
 # Quick launcher for Content Optimizer with simplified interface
 
 # Colors

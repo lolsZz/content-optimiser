@@ -1,5 +1,120 @@
 import re  # Add missing import at the top of the file
 
+# Define missing patterns that are referenced later in the file
+SCRAPER_WARNING_PATTERN = re.compile(
+    r'(?i)(?:This content was automatically scraped|Do not scrape|Web scraping not allowed|Crawling not permitted|Data extraction prohibited)',
+    re.IGNORECASE
+)
+
+PUBLISHED_TIME_PATTERN = re.compile(
+    r'(?i)(?:Published|Posted on|Last updated)(?:\s*(?:at|on))?:?\s*\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)?',
+    re.MULTILINE
+)
+
+WP_TRACKING_PIXEL_PATTERN = re.compile(
+    r'<img[^>]+(?:tracking|pixel|analytics|stats)[^>]*>|<img[^>]+height=["\']?1["\']?[^>]+width=["\']?1["\']?[^>]*>|<img[^>]+width=["\']?1["\']?[^>]+height=["\']?1["\']?[^>]*>',
+    re.IGNORECASE
+)
+
+META_TITLE_URL_PATTERN = re.compile(
+    r'^(?:Title|URL|Source):\s+\S+.*$',
+    re.MULTILINE
+)
+
+WP_COMMENT_PROMPT_PATTERN = re.compile(
+    r'(?:Leave a (?:comment|reply)|Add your comment|Post a comment|Comments below|Share your thoughts).*?(?:below|\.|$)',
+    re.IGNORECASE
+)
+
+WP_COOKIE_NOTICE_PATTERN = re.compile(
+    r'(?:This (?:website|site) uses cookies|We use cookies|Cookie Policy|Accept cookies|We value your privacy).*?(?:experience|setting|privacy|policy|\.|$)',
+    re.IGNORECASE
+)
+
+GITHUB_LINK_PATTERN = re.compile(
+    r'^\s*(?:GitHub|Repository|Source code):\s+https?://(?:www\.)?github\.com/[^/\s]+/[^/\s]+\s*$',
+    re.MULTILINE | re.IGNORECASE
+)
+
+REDUNDANT_HEADERS_PATTERN = re.compile(
+    r'^(?:#+ .+)\n+(?:#+ .+)$',  # Match adjacent headers with no content between them
+    re.MULTILINE
+)
+
+WEEBLY_HEADER_TABLE_PATTERN = re.compile(
+    r'<table[^>]*weebly[^>]*>.*?</table>|<table[^>]*>.*?(?:Logo|Home|About|Contact|Services).*?</table>',
+    re.IGNORECASE | re.DOTALL
+)
+
+MODAL_DOCS_HEADER_PATTERN = re.compile(
+    r'---\s*\ntitle:.*?\n(?:description:.*?\n)?(?:date:.*?\n)?(?:tags:.*?\n)?(?:categories:.*?\n)?(?:slug:.*?\n)?(?:authors:.*?\n)?---\s*\n+',
+    re.DOTALL
+)
+
+WP_NAV_LIST_PATTERN = re.compile(
+    r'<(?:ul|ol)[^>]*(?:menu|navigation)[^>]*>.*?</(?:ul|ol)>',
+    re.IGNORECASE | re.DOTALL
+)
+
+WP_SIDEBAR_SECTIONS_PATTERN = re.compile(
+    r'<(?:div|section|aside)[^>]*(?:sidebar|widget-area)[^>]*>.*?</(?:div|section|aside)>',
+    re.IGNORECASE | re.DOTALL
+)
+
+WP_SLIDER_NAV_PATTERN = re.compile(
+    r'<div[^>]*(?:slider|carousel|gallery)[^>]*>.*?</div>',
+    re.IGNORECASE | re.DOTALL
+)
+
+CONSECUTIVE_LINK_LIST_PATTERN = re.compile(
+    r'(?:^(?:[-*+] )?(?:\[.*?\]\(.*?\)[ \t]*(?:\n|$)){3,})',
+    re.MULTILINE
+)
+
+LOGO_IMAGE_LINE_PATTERN = re.compile(
+    r'<img[^>]*(?:logo|brand|site-icon)[^>]*>',
+    re.IGNORECASE
+)
+
+MARKDOWN_HORIZONTAL_RULE_PATTERN = re.compile(
+    r'^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$',
+    re.MULTILINE
+)
+
+SUTTON_QUAKER_DOTTED_FOOTER_PATTERN = re.compile(
+    r'\.{5,}.*?Sutton Coldfield Quakers.*?$',
+    re.MULTILINE | re.IGNORECASE
+)
+
+WEEBLY_FOOTER_PATTERN = re.compile(
+    r'(?:Powered by|Create your (?:own|free)).*?(?:Weebly|Site Builder|IONOS|Wix|Website Builder|WordPress).*?(?:\.|$)',
+    re.IGNORECASE
+)
+
+WP_ADDRESS_CONNECT_FOOTER_PATTERN = re.compile(
+    r'^(?:Address|Location|Connect With Us|Contact Us|Follow Us)(?::|)\s*\n(?:[^\n]+\n){1,5}(?=\n|$)',
+    re.MULTILINE | re.IGNORECASE
+)
+
+TRAILING_NAV_LINKS_PATTERN = re.compile(
+    r'(?:\[(?:Home|About|Contact|Services|Products)(?:\s+(?:Page|Us|Me))?\]\(.*?\)(?:\s+\|\s+|\s*\n\s*)){2,}(?:\[(?:Home|About|Contact|Services|Products)(?:\s+(?:Page|Us|Me))?\]\(.*?\))',
+    re.IGNORECASE
+)
+
+WEBSITE_HEADER_PATTERN = re.compile(
+    r'^<header.*?>.*?</header>|<div[^>]*(?:site-header|page-header|main-header)[^>]*>.*?</div>',
+    re.IGNORECASE | re.DOTALL | re.MULTILINE
+)
+
+WEBSITE_FOOTER_PATTERN = re.compile(
+    r'<footer.*?>.*?</footer>|<div[^>]*(?:site-footer|page-footer|main-footer)[^>]*>.*?</div>',
+    re.IGNORECASE | re.DOTALL
+)
+
+ZERO_WIDTH_SPACE_PATTERN = re.compile(
+    r'\u200B|\u200C|\u200D|\uFEFF'
+)
+
 # optimization_rules.py
 # ... (other rules remain the same) ...
 
