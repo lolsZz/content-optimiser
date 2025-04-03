@@ -161,8 +161,6 @@ class UnifiedOptimizer:
                 if extensions and not any(file_path.lower().endswith(ext) for ext in extensions):
                     continue
                 
-                # TODO: Add ignore pattern matching
-                
                 # Process the file
                 try:
                     rel_path = os.path.relpath(file_path, directory_path)
