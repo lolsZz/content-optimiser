@@ -758,6 +758,15 @@ def generate_report(report_filename: str, stats: dict):
 
 def main():
     """Parses command-line arguments and initiates the optimization process."""
+    # Ensure quick script is executable
+    quick_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "optimize-quick.sh")
+    if os.path.exists(quick_script_path) and not os.access(quick_script_path, os.X_OK):
+        try:
+            os.chmod(quick_script_path, 0o755)
+            print_info(f"Made optimize-quick.sh executable")
+        except Exception as e:
+            print_warning(f"Could not make optimize-quick.sh executable: {e}")
+    
     parser = argparse.ArgumentParser(
         description="Optimize text content for LLM consumption by removing noise and boilerplate.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
