@@ -9,6 +9,7 @@ This guide provides detailed instructions and best practices for using the Conte
 - [Basic Usage Workflows](#basic-usage-workflows)
 - [Advanced Configuration](#advanced-configuration)
 - [Specialized Content Helpers](#specialized-content-helpers)
+- [Helper Configuration Options](#helper-configuration-options)
 - [Interpreting Reports](#interpreting-reports)
 - [Troubleshooting](#troubleshooting)
 - [Use Cases and Examples](#use-cases-and-examples)
@@ -61,6 +62,14 @@ venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+### Install Optional Dependencies
+
+For the best experience, install all optional dependencies:
+
+```bash
+pip install tqdm tiktoken gitignore-parser pygments beautifulsoup4 mail-parser
 ```
 
 ### Verifying Your Installation
@@ -257,6 +266,58 @@ python optimize.py -d ./documentation -m docs
 python optimize.py -d ./markdown-content -m markdown
 ```
 
+## Helper Configuration Options
+
+Each specialized helper accepts configuration options that can be set programmatically. Below are the available options for each helper:
+
+### Notion Helper Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserve_callouts` | `True` | Keep Notion callout blocks (e.g., 📝, 💡) |
+| `preserve_toggles` | `True` | Keep Notion toggle/expandable blocks |
+| `include_id_comments` | `True` | Add HTML comments with Notion IDs for reference |
+| `convert_properties` | `True` | Convert Notion Properties to YAML frontmatter |
+
+### Email Helper Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserve_headers` | `False` | Keep email headers (From, To, Subject, etc.) |
+| `preserve_quotes` | `False` | Keep quoted text from earlier messages |
+| `preserve_signatures` | `False` | Keep email signatures |
+| `max_quote_depth` | `1` | Maximum levels of quoted text to retain |
+
+### Code Helper Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `remove_boilerplate` | `True` | Remove license/copyright headers |
+| `remove_logs` | `False` | Remove log/print statements |
+| `preserve_todos` | `True` | Keep TODO/FIXME comments |
+| `preserve_imports` | `True` | Keep import statements unmodified |
+
+### Documentation Helper Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserve_toc` | `True` | Keep table of contents |
+| `preserve_breadcrumbs` | `False` | Keep navigation breadcrumbs |
+| `preserve_edit_info` | `False` | Keep "last updated" information |
+| `preserve_version_info` | `True` | Keep version numbers |
+
+### Markdown Helper Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `preserve_html` | `True` | Keep HTML tags |
+| `preserve_comments` | `False` | Keep HTML comments |
+| `preserve_images` | `True` | Keep image links |
+| `preserve_badges` | `False` | Keep badges/shields |
+| `preserve_frontmatter` | `True` | Keep YAML frontmatter |
+| `fix_redundant_links` | `True` | Simplify redundant links |
+| `fix_relative_links` | `False` | Convert relative links to text |
+
 ## Interpreting Reports
 
 The generated report provides valuable insights into the optimization process:
@@ -275,6 +336,24 @@ The generated report provides valuable insights into the optimization process:
 - **Content Type Distribution**: Shows the mix of content in your repository (in auto mode)
 - **Processing Speed**: Can help identify if there were performance issues
 
+### Understanding Statistics Table
+
+```
+| Metric | Original | Optimized | Reduction |
+|--------|----------|-----------|-----------|
+| Character Count | 1,234,567 | 987,654 | 20.00% |
+| Token Count | 246,913 | 197,530 | 20.00% |
+| Files Processed | 123 | | |
+| Files Skipped | 45 | | |
+| Processing Time | 12.34 seconds | | |
+```
+
+This table shows:
+- Original and optimized content size in characters and tokens
+- The percentage reduction achieved through optimization
+- How many files were processed or skipped
+- How long the process took
+
 ## Troubleshooting
 
 ### Common Issues and Solutions
@@ -285,7 +364,7 @@ The generated report provides valuable insights into the optimization process:
 
 **Solution**: Install the missing packages:
 ```bash
-pip install tiktoken gitignore-parser pygments beautifulsoup4
+pip install tiktoken gitignore-parser pygments beautifulsoup4 mail-parser
 ```
 
 #### Issue: No Files Found During Directory Scan
@@ -296,6 +375,7 @@ pip install tiktoken gitignore-parser pygments beautifulsoup4
 - Check if your `--extensions` parameter matches the files in your directory
 - Verify your `--ignore` patterns aren't excluding everything
 - Check file permissions
+- Try running with more verbose output: `python -v optimize.py ...`
 
 #### Issue: Unexpected Removal of Content
 
@@ -305,6 +385,7 @@ pip install tiktoken gitignore-parser pygments beautifulsoup4
 - Try using `code` mode instead of `docs` mode for less aggressive optimization
 - Check if auto-detection incorrectly classified your content
 - Check the report to see which optimizations were applied
+- Configure helpers to preserve specific content types
 
 #### Issue: Content Detection Not Working as Expected
 
@@ -313,6 +394,26 @@ pip install tiktoken gitignore-parser pygments beautifulsoup4
 **Solution**:
 - Specify the mode explicitly instead of using auto-detection
 - Check file extensions to ensure they match the content type
+- Review the detection confidence scores in the report
+
+#### Issue: Error Reading Files
+
+**Symptoms**: Errors about file encoding or permissions.
+
+**Solutions**:
+- Check file permissions
+- Ensure files are readable text files, not binary
+- Specify an explicit encoding if needed
+- Use `--ignore` to skip problematic files
+
+#### Issue: Memory Usage Too High
+
+**Symptoms**: Out of memory errors when processing large repositories.
+
+**Solutions**:
+- Process directories in smaller chunks
+- Use more targeted file extensions to limit processing
+- Process one file at a time for very large files
 
 ## Use Cases and Examples
 
@@ -385,6 +486,54 @@ This setup:
 - Cleans up Notion IDs from filenames while preserving the references
 - Converts Notion properties blocks to YAML frontmatter
 - Optimizes Notion-specific artifacts and formatting
+
+### Use Case 6: Preparing Source Code for Model Training
+
+```bash
+python optimize.py -d ./code-repository -m code \
+    --extensions .py,.js,.ts,.java,.cpp \
+    --ignore "tests/,*.test.*,vendor/,node_modules/" \
+    -o ./training-data/code-sample.md
+```
+
+This setup:
+- Processes code files with extensions matching common programming languages
+- Ignores test code, vendor code, and node modules
+- Preserves code structure and important comments
+- Removes boilerplate headers while keeping functional code
+
+## Command Line Reference
+
+```
+usage: optimize.py [-h] (-d INPUT_DIR | -i INPUT_FILE | -q DIR | -n DIR | -a DIR)
+                   [-o OUTPUT_FILE] [-m {code,docs,notion,email,markdown,auto}]
+                   [--report_file REPORT_FILE] [--extensions EXTENSIONS]
+                   [--ignore IGNORE] [--use-gitignore]
+                   [--policy-filter | --no-policy-filter]
+
+options:
+  -h, --help            show this help message and exit
+  -d INPUT_DIR, --input_dir INPUT_DIR
+                        Path to the root directory of the content to scan.
+  -i INPUT_FILE, --input_file INPUT_FILE
+                        Path to the input file (e.g., a Repomix file).
+  -q DIR, --quick DIR   Quick optimization with sensible defaults (docs mode)
+  -n DIR, --notion DIR  Process a Notion.so export directory
+  -a DIR, --auto DIR    Auto-detect content types
+  -o OUTPUT_FILE, --output_file OUTPUT_FILE
+                        Path for the optimized output file. If omitted, generated
+                        automatically based on input name and timestamp.
+  -m {code,docs,notion,email,markdown,auto}, --mode {code,docs,notion,email,markdown,auto}
+                        Optimization mode. Use 'auto' for content type detection.
+  --report_file REPORT_FILE
+                        Path for the optimization report file.
+  --extensions EXTENSIONS
+                        Comma-separated list of file extensions to include.
+  --ignore IGNORE       Comma-separated list of glob patterns to ignore.
+  --use-gitignore       Respect .gitignore rules during scanning.
+  --policy-filter       Enable filtering of potential policy pages (default).
+  --no-policy-filter    Disable filtering of policy pages (process all files).
+```
 
 ## Conclusion
 

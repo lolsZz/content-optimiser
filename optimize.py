@@ -66,7 +66,7 @@ except ImportError:
     GITIGNORE_AVAILABLE = False
     gitignore_parser = None
 
-# Import optimization rules and helpers
+# Update import statements to use the restructured directories
 try:
     import optimization_rules as rules
     # Import specialized content helpers
