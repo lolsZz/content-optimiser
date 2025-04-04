@@ -526,8 +526,8 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
         }
         try:
             generate_report(report_filename, report_stats)
-        except:
-            pass  # Last resort - if even report generation fails
+        except Exception as e:
+            logging.exception("Include relevant information about the exception here", e, stack_info=True, exc_info=True)  # import logging
         return
 
     if not file_paths:
@@ -812,7 +812,7 @@ def main():
     quick_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "optimize-quick.sh")
     if os.path.exists(quick_script_path) and not os.access(quick_script_path, os.X_OK):
         try:
-            os.chmod(quick_script_path, 0o755)
+            os.chmod(quick_script_path, 0o754)
             print_info(f"Made optimize-quick.sh executable")
         except Exception as e:
             print_warning(f"Could not make optimize-quick.sh executable: {e}")

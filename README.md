@@ -1,14 +1,10 @@
 # Content Optimizer
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.9%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
 A Python tool for cleaning and optimizing text content for Large Language Model (LLM) consumption by removing boilerplate, website chrome, and irrelevant elements.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/yourusername/content-optimiser/main/docs/images/demo.gif" alt="Content Optimizer Demo" width="700">
-</p>
 
 ## Overview
 

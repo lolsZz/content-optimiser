@@ -779,81 +779,90 @@ class LLMTrainingDataGenerator:
             return match.group(1).strip()
         return ""
     
-    def _extract_functions_and_classes(self, content: str, file_type: str) -> str:
-        """
-        Extract information about functions and classes from code.
+def _extract_functions_and_classes(self, content: str, file_type: str) -> str:
+    """
+    Extract information about functions and classes from code.
+    
+    Args:
+        content: Code content
+        file_type: Type of file/language
         
-        Args:
-            content: Code content
-            file_type: Type of file/language
-            
-        Returns:
-            Description of functions and classes
-        """
-        result = "The file contains the following main components:\n\n"
+    Returns:
+        Description of functions and classes
+    """
+    if not self._is_authorized_for_code_analysis():
+        return "Access denied. You are not authorized to perform code analysis."
+
+    result = "The file contains the following main components:\n\n"
+    
+    if file_type == "py":
+        # Python function and class detection
+        function_pattern = re.compile(r'def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*->.*?)?:', re.DOTALL)
+        class_pattern = re.compile(r'class\s+([a-zA-Z0-9_]+)(?:\(.*?\))?:', re.DOTALL)
         
-        if file_type == "py":
-            # Python function and class detection
-            function_pattern = re.compile(r'def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*->.*?)?:', re.DOTALL)
-            class_pattern = re.compile(r'class\s+([a-zA-Z0-9_]+)(?:\(.*?\))?:', re.DOTALL)
-            
-            functions = function_pattern.findall(content)
-            classes = class_pattern.findall(content)
-            
-            if classes:
-                result += "Classes:\n"
-                for cls in classes:
-                    result += f"- {cls}\n"
-                result += "\n"
-            
-            if functions:
-                result += "Functions:\n"
-                for func_name, params in functions:
-                    result += f"- {func_name}({params.strip()})\n"
+        functions = function_pattern.findall(content)
+        classes = class_pattern.findall(content)
         
-        elif file_type in ["js", "ts"]:
-            # JavaScript/TypeScript function detection
-            function_pattern = re.compile(r'(?:function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)|const\s+([a-zA-Z0-9_]+)\s*=\s*(?:async\s*)?\((.*?)\)\s*=>)', re.DOTALL)
-            class_pattern = re.compile(r'class\s+([a-zA-Z0-9_]+)(?:\s+extends\s+[a-zA-Z0-9_]+)?', re.DOTALL)
-            
-            functions = function_pattern.findall(content)
-            classes = class_pattern.findall(content)
-            
-            if classes:
-                result += "Classes:\n"
-                for cls in classes:
-                    result += f"- {cls}\n"
-                result += "\n"
-            
-            if functions:
-                result += "Functions:\n"
-                for match in functions:
-                    if match[0]:  # Function declaration
-                        result += f"- {match[0]}({match[1].strip()})\n"
-                    else:  # Arrow function
-                        result += f"- {match[2]}({match[3].strip()})\n"
+        if classes:
+            result += "Classes:\n"
+            for cls in classes:
+                result += f"- {cls}\n"
+            result += "\n"
         
+        if functions:
+            result += "Functions:\n"
+            for func_name, params in functions:
+                result += f"- {func_name}({params.strip()})\n"
+    
+    elif file_type in ["js", "ts"]:
+        # JavaScript/TypeScript function detection
+        function_pattern = re.compile(r'(?:function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)|const\s+([a-zA-Z0-9_]+)\s*=\s*(?:async\s*)?\((.*?)\)\s*=>)', re.DOTALL)
+        class_pattern = re.compile(r'class\s+([a-zA-Z0-9_]+)(?:\s+extends\s+[a-zA-Z0-9_]+)?', re.DOTALL)
+        
+        functions = function_pattern.findall(content)
+        classes = class_pattern.findall(content)
+        
+        if classes:
+            result += "Classes:\n"
+            for cls in classes:
+                result += f"- {cls}\n"
+            result += "\n"
+        
+        if functions:
+            result += "Functions:\n"
+            for match in functions:
+                if match[0]:  # Function declaration
+                    result += f"- {match[0]}({match[1].strip()})\n"
+                else:  # Arrow function
+                    result += f"- {match[2]}({match[3].strip()})\n"
+    
+    else:
+        # Generic code analysis for other languages
+        # Use simple heuristics to identify important components
+        lines = content.split('\n')
+        components = []
+        
+        for line in lines:
+            line = line.strip()
+            if (line.startswith("function ") or line.startswith("def ") or
+                line.startswith("class ") or "function(" in line or
+                " = function(" in line or " = (" in line and ") =>" in line):
+                components.append(line)
+        
+        if components:
+            result += "Key components:\n"
+            for comp in components[:10]:  # Limit to first 10 for brevity
+                result += f"- {comp}\n"
         else:
-            # Generic code analysis for other languages
-            # Use simple heuristics to identify important components
-            lines = content.split('\n')
-            components = []
-            
-            for line in lines:
-                line = line.strip()
-                if (line.startswith("function ") or line.startswith("def ") or
-                    line.startswith("class ") or "function(" in line or
-                    " = function(" in line or " = (" in line and ") =>" in line):
-                    components.append(line)
-            
-            if components:
-                result += "Key components:\n"
-                for comp in components[:10]:  # Limit to first 10 for brevity
-                    result += f"- {comp}\n"
-            else:
-                result = "Could not detect specific functions or classes in this code."
-        
-        return result
+            result = "Could not detect specific functions or classes in this code."
+    
+    return result
+
+def _is_authorized_for_code_analysis(self):
+    # Implement proper server-side authorization check
+    # This should use secure session management or an authentication service
+    # Return True if the user is authorized, False otherwise
+    pass
     
     def _extract_topics(self, content: str) -> str:
         """
@@ -1110,111 +1119,111 @@ class LLMTrainingDataGenerator:
         # Last resort
         return "this topic"
     
-    def _split_code_into_chunks(self, code: str, language: str) -> List[Tuple[str, str]]:
-        """
-        Split code into chunks suitable for completion examples.
+def _split_code_into_chunks(self, code: str, language: str) -> List[Tuple[str, str]]:
+    """
+    Split code into chunks suitable for completion examples.
+    
+    Args:
+        code: Source code
+        language: Programming language
         
-        Args:
-            code: Source code
-            language: Programming language
-            
-        Returns:
-            List of (prompt, completion) tuples
-        """
-        chunks = []
+    Returns:
+        List of (prompt, completion) tuples
+    """
+    chunks = []
+    
+    if language == "py":
+        # Split Python code by functions and classes
+        function_pattern = re.compile(r'(def\s+[a-zA-Z0-9_]+\s*\(.*?\):(?:\s*""".*?""")?(?:\s*#.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*)', re.DOTALL)
+        class_pattern = re.compile(r'(class\s+[a-zA-Z0-9_]+(?:\([^)]*\))?:(?:\s*""".*?""")?(?:\s*#.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*)', re.DOTALL)
         
-        if language == "py":
-            # Split Python code by functions and classes
-            function_pattern = re.compile(r'(def\s+[a-zA-Z0-9_]+\s*\(.*?\):(?:\s*""".*?""")?(?:\s*#.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*)', re.DOTALL)
-            class_pattern = re.compile(r'(class\s+[a-zA-Z0-9_]+(?:\([^)]*\))?:(?:\s*""".*?""")?(?:\s*#.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*)', re.DOTALL)
+        # Find function chunks
+        for match in function_pattern.finditer(code):
+            signature = match.group(1)
+            body = match.group(2)
             
-            # Find function chunks
-            for match in function_pattern.finditer(code):
-                signature = match.group(1)
-                body = match.group(2)
-                
-                if len(signature) > 20 and len(body) > 30:
-                    chunks.append((signature, body))
-            
-            # Find class chunks
-            for match in class_pattern.finditer(code):
-                signature = match.group(1)
-                body = match.group(2)
-                
-                if len(signature) > 20 and len(body) > 30:
-                    chunks.append((signature, body))
-                    
-        elif language in ["js", "ts"]:
-            # Split JavaScript/TypeScript code by functions
-            function_pattern = re.compile(r'(function\s+[a-zA-Z0-9_]+\s*\(.*?\)\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
-            arrow_pattern = re.compile(r'(const\s+[a-zA-Z0-9_]+\s*=\s*(?:async\s*)?\(.*?\)\s*=>\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
-            class_pattern = re.compile(r'(class\s+[a-zA-Z0-9_]+(?:\s+extends\s+[a-zA-Z0-9_]+)?\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
-            
-            # Find function chunks
-            for match in function_pattern.finditer(code):
-                signature = match.group(1)
-                body = match.group(2)
-                
-                if len(signature) > 20 and len(body) > 30:
-                    chunks.append((signature, body))
-            
-            # Find arrow function chunks
-            for match in arrow_pattern.finditer(code):
-                signature = match.group(1)
-                body = match.group(2)
-                
-                if len(signature) > 20 and len(body) > 30:
-                    chunks.append((signature, body))
-            
-            # Find class chunks
-            for match in class_pattern.finditer(code):
-                signature = match.group(1)
-                body = match.group(2)
-                
-                if len(signature) > 20 and len(body) > 30:
-                    chunks.append((signature, body))
+            if len(signature) > 20 and len(body) > 30:
+                chunks.append((signature, body))
         
-        else:
-            # Generic approach for other languages
-            # Look for block patterns with a consistent indent level
-            lines = code.split('\n')
+        # Find class chunks
+        for match in class_pattern.finditer(code):
+            signature = match.group(1)
+            body = match.group(2)
             
-            block_start = -1
-            block_indent = -1
-            for i, line in enumerate(lines):
-                if i < len(lines) - 1 and line.strip() and lines[i+1].strip():
-                    current_indent = len(line) - len(line.lstrip())
-                    next_indent = len(lines[i+1]) - len(lines[i+1].lstrip())
-                    
-                    # Found a potential block start where indentation increases
-                    if next_indent > current_indent:
-                        # Complete the previous block if exists
-                        if block_start >= 0 and block_indent >= 0:
-                            header = "\n".join(lines[block_start:i])
-                            body = "\n".join(lines[i:])
-                            if len(header) > 20 and len(body) > 30:
-                                chunks.append((header, body))
-                            
-                        block_start = i
-                        block_indent = current_indent
-        
-        # Ensure we have at least some chunks, even if pattern matching failed
-        if not chunks and len(code) > 100:
-            # Split into approximately equal chunks
-            lines = code.split('\n')
-            lines = [line for line in lines if line.strip()]  # Remove empty lines
-            
-            if len(lines) >= 6:
-                chunk_size = len(lines) // 3
+            if len(signature) > 20 and len(body) > 30:
+                chunks.append((signature, body))
                 
-                for i in range(0, len(lines) - chunk_size, chunk_size):
-                    prompt = "\n".join(lines[i:i+chunk_size//2])
-                    completion = "\n".join(lines[i+chunk_size//2:i+chunk_size])
-                    
-                    if len(prompt) > 20 and len(completion) > 20:
-                        chunks.append((prompt, completion))
+    elif language in ["js", "ts"]:
+        # Split JavaScript/TypeScript code by functions
+        function_pattern = re.compile(r'(function\s+[a-zA-Z0-9_]+\s*\(.*?\)\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
+        arrow_pattern = re.compile(r'(const\s+[a-zA-Z0-9_]+\s*=\s*(?:async\s*)?\(.*?\)\s*=>\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
+        class_pattern = re.compile(r'(class\s+[a-zA-Z0-9_]+(?:\s+extends\s+[a-zA-Z0-9_]+)?\s*{(?:\s*//.*?)?(?:\s*[^\n]+)*?)(\s+[^\s][^\n]*(?:\n+\s+[^\n]+)*\n*})', re.DOTALL)
         
-        return chunks
+        # Find function chunks
+        for match in function_pattern.finditer(code):
+            signature = match.group(1)
+            body = match.group(2)
+            
+            if len(signature) > 20 and len(body) > 30:
+                chunks.append((signature, body))
+        
+        # Find arrow function chunks
+        for match in arrow_pattern.finditer(code):
+            signature = match.group(1)
+            body = match.group(2)
+            
+            if len(signature) > 20 and len(body) > 30:
+                chunks.append((signature, body))
+        
+        # Find class chunks
+        for match in class_pattern.finditer(code):
+            signature = match.group(1)
+            body = match.group(2)
+            
+            if len(signature) > 20 and len(body) > 30:
+                chunks.append((signature, body))
+    
+    else:
+        # Generic approach for other languages
+        # Look for block patterns with a consistent indent level
+        lines = code.split('\n')
+        
+        block_start = -1
+        block_indent = -1
+        for i, line in enumerate(lines):
+            if i < len(lines) - 1 and line.strip() and lines[i+1].strip():
+                current_indent = len(line) - len(line.lstrip())
+                next_indent = len(lines[i+1]) - len(lines[i+1].lstrip())
+                
+                # Found a potential block start where indentation increases
+                if next_indent > current_indent:
+                    # Complete the previous block if exists
+                    if block_start >= 0 and block_indent >= 0:
+                        header = "\n".join(lines[block_start:i])
+                        body = "\n".join(lines[i:])
+                        if len(header) > 20 and len(body) > 30:
+                            chunks.append((header, body))
+                        
+                    block_start = i
+                    block_indent = current_indent
+    
+    # Ensure we have at least some chunks, even if pattern matching failed
+    if not chunks and len(code) > 100:
+        # Split into approximately equal chunks
+        lines = code.split('\n')
+        lines = [line for line in lines if line.strip()]  # Remove empty lines
+        
+        if len(lines) >= 6:
+            chunk_size = len(lines) // 3
+            
+            for i in range(0, len(lines) - chunk_size, chunk_size):
+                prompt = "\n".join(lines[i:i+chunk_size//2])
+                completion = "\n".join(lines[i+chunk_size//2:i+chunk_size])
+                
+                if len(prompt) > 20 and len(completion) > 20:
+                    chunks.append((prompt, completion))
+    
+    return chunks
     
     def _count_tokens(self, example: Dict[str, Any]) -> int:
         """

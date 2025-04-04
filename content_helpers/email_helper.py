@@ -109,7 +109,8 @@ class EmailHelper(ContentHelperBase):
         if file_path and file_path.lower().endswith('.eml'):
             try:
                 return self._parse_eml_content(content)
-            except:
+            except Exception as e:
+                logging.exception("Error parsing .eml file: %s", e, stack_info=True, exc_info=True)  # import logging
                 # Fall back to regular text processing if parsing fails
                 pass
         

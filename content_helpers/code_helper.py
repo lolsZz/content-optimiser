@@ -183,8 +183,8 @@ class CodeHelper(ContentHelperBase):
                     if key in lang_name:
                         self.stats["helper_specific_data"]["detected_languages"][value] += 1
                         return value
-            except:
-                pass
+            except Exception as e:
+                logging.exception("Include relevant information about the exception here", e, stack_info=True, exc_info=True)  # import logging
         
         # Fall back to some basic content pattern matching
         if '#!/usr/bin/env python' in content or 'def ' in content and ':' in content:
