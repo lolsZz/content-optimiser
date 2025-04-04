@@ -20,198 +20,236 @@ This document provides an overview of the Content Optimizer's project structure,
 │       └── demo.gif               # Demo image for README
 ├── tests/                         # Test suite (future development)
 ├── optimize.py                    # Main script - entry point for the application
-├── generate_training_data.py      # Script for generating LLM training data from optimized content
+├── generate_training_data.py      # Script for generating LLM training data
+├── optimization_rules.py          # Pattern definitions and optimization rules
 ├── optimize-quick.sh              # Bash wrapper for common optimization scenarios
 ├── fix-permissions.sh             # Script to set proper executable permissions
-├── optimization_rules.py          # Pattern definitions and optimization rules
+├── requirements.txt               # Project dependencies
 ├── PROJECT_STRUCTURE.md           # This file - project structure documentation
 ├── README.md                      # Project overview and quick start guide
-├── USAGE_GUIDE.md                 # Detailed usage guide with examples
-└── requirements.txt               # Project dependencies
+├── USAGE_GUIDE.md                # Detailed usage guide with examples
+└── HELPER_CONFIG.md              # Helper configuration documentation
 ```
 
 ## Core Files
 
-- `optimize.py` - Main script for content optimization
-- `generate_training_data.py` - Script for generating LLM training data from optimized content
-- `optimization_rules.py` - Defines patterns and rules for content optimization
-- `requirements.txt` - Python dependencies
-- `optimize-quick.sh` - Bash script for quick usage
-- `fix-permissions.sh` - Script to set proper executable permissions
-- `README.md` - Project documentation
+### Main Components
+- `optimize.py` - Main entry point and CLI interface
+- `generate_training_data.py` - LLM training data generation
+- `optimization_rules.py` - Regular expression patterns for optimization
+- `requirements.txt` - Project dependencies
+- `optimize-quick.sh` - Simplified command interface
+- Documentation files (README.md, etc.)
+
+### Utility Scripts
+- `fix-permissions.sh` - Sets proper executable permissions
+- `fix-specific-form.sh` - Form-specific cleanup utilities
+- `fix-forms.sh` - General form cleanup utilities
+- `fix-optimization.sh` - Optimization-specific utilities
+- `fix-duplicate-content.sh` - Duplicate content handling
 
 ## Core Modules
 
 ### Main Script (optimize.py)
 
-The main script serves as the entry point for the application, handling:
-
+The entry point for the application, handling:
 - Command line argument parsing
 - Input validation and processing
 - Directory scanning and file filtering
 - Content optimization coordination
-- Output generation
-- Reporting
+- Output generation and reporting
 
 Key functions:
-- `main()`: Entry point, parses arguments and initiates processing
-- `process_with_content_helpers()`: Coordinates the optimization process
-- `scan_directory()`: Handles directory traversal with filtering
-- `generate_report()`: Creates detailed markdown reports
-
-### Quick Wrapper (optimize-quick.sh)
-
-A Bash script that provides a simplified interface for common operations. It:
-- Parses simple commands and maps them to optimize.py flags
-- Provides helpful usage information
-- Ensures scripts have proper execute permissions
+- `main()`: Entry point and argument processing
+- `process_with_content_helpers()`: Optimization coordination
+- `scan_directory()`: Directory traversal with filtering
+- `generate_report()`: Detailed report generation
 
 ### Content Helpers Package
 
-The `content_helpers` package provides specialized modules for different types of content:
-
-#### Factory Functions (__init__.py)
-
-- `get_content_helper(content_type, **kwargs)`: Returns the appropriate helper instance
-- `get_unified_optimizer(default_mode="docs", **kwargs)`: Returns a unified optimizer
+The `content_helpers` package contains specialized modules for different content types:
 
 #### Base Helper (base_helper.py)
 
-`ContentHelperBase` is an abstract base class that defines the interface all helpers must implement:
+Abstract base class defining the interface all helpers must implement:
 
-- `detect_content_type(file_path, content=None)`: Determine confidence this is the right helper
-- `preprocess_content(content, file_path=None)`: Prepare content for optimization
-- `optimize_content(content, file_path=None)`: Apply content-specific optimizations
-- `postprocess_content(content, file_path=None)`: Apply final processing
-- `process_file(file_path, content=None)`: Complete processing pipeline
+```python
+class ContentHelperBase:
+    def detect_content_type(self, file_path, content=None) -> float:
+        """Determine confidence this is the right helper (0.0-1.0)"""
+        
+    def preprocess_content(self, content, file_path=None) -> dict:
+        """Prepare content for optimization"""
+        
+    def optimize_content(self, content_data, file_path=None) -> tuple:
+        """Apply content-specific optimizations"""
+        
+    def postprocess_content(self, content, file_path=None) -> str:
+        """Apply final processing"""
+```
 
 #### Unified Optimizer (unified_optimizer.py)
 
-`UnifiedOptimizer` provides content auto-detection and routing:
+Handles content detection and routing:
+- `detect_content_type()`: Determines best helper for content
+- `optimize_file()`: Processes with best helper
+- `optimize_directory()`: Processes entire directories
+- `get_stats()`: Retrieves optimization statistics
 
-- `detect_content_type(file_path, content=None)`: Determine best helper for content
-- `optimize_file(file_path, content=None, force_mode=None)`: Process with best helper
-- `optimize_directory(directory_path, force_mode=None)`: Process entire directories
+#### Code Helper (code_helper.py)
 
-#### Specialized Helpers
+Specialized for source code optimization:
+- Automatic language detection using file extensions and content analysis
+- Language-specific optimization rules
+- Preservation of code structure and important comments
+- Smart handling of imports and dependencies
+- Support for multiple programming languages
 
-Each specialized helper inherits from `ContentHelperBase` and implements content-specific behavior:
+#### Documentation Helper (docs_helper.py)
 
-1. **Code Helper (code_helper.py)**
-   - Detects and optimizes source code files
-   - Identifies programming languages
-   - Preserves code structure while removing noise
+Optimized for documentation content:
+- Markdown formatting preservation
+- Header and structure maintenance
+- Table and list handling
+- Navigation element removal
+- Version information preservation
 
-2. **Documentation Helper (docs_helper.py)**
-   - Optimizes documentation content
-   - Handles markdown headers, code blocks, and tables
-   - Removes navigation elements while preserving structure
+#### Email Helper (email_helper.py)
 
-3. **Email Helper (email_helper.py)**
-   - Processes email content and threads
-   - Cleans up headers, signatures, and disclaimers
-   - Handles quoted replies with configurable depth
+Specialized for email content:
+- Email thread processing
+- Header and signature cleanup
+- Quote level management
+- Attachment reference handling
+- Thread visualization preservation
 
-4. **Markdown Helper (markdown_helper.py)**
-   - Optimizes Markdown and HTML content
-   - Cleans unnecessary HTML while preserving structure
-   - Handles images, links, and formatting
+#### Markdown Helper (markdown_helper.py)
 
-5. **Notion Helper (notion_helper.py)**
-   - Processes Notion.so exports
-   - Handles Notion IDs and specific formatting
-   - Converts properties blocks to frontmatter
+Enhanced for Markdown/HTML:
+- Mixed content handling
+- HTML tag processing
+- Image and link management
+- YAML frontmatter handling
+- Table and list preservation
 
-### Optimization Rules (optimization_rules.py)
+#### Notion Helper (notion_helper.py)
 
-Defines regular expression patterns for identifying and removing common noise elements:
-
-- Website chrome (headers, footers, navigation)
-- Contact forms and subscription boxes
-- Tracking pixels and non-essential metadata
-- Policy sections and disclaimers
-- Redundant formatting and structure
+Specialized for Notion exports:
+- Notion ID handling
+- Property block conversion
+- Block element processing
+- Export-specific formatting
+- Reference preservation
 
 ## Flow of Execution
 
-1. **User Invocation**: User runs `optimize.py` or `optimize-quick.sh` with arguments
-2. **Argument Parsing**: Script parses arguments to determine mode and options
-3. **Directory Scanning**: If processing a directory, files are scanned and filtered
-4. **Helper Selection**:
-   - If auto mode, content is analyzed to determine the appropriate helper
-   - Otherwise, the specified helper is used
-5. **Content Processing**:
-   - **Preprocessing**: Content is prepared and metadata extracted
-   - **Optimization**: Content-specific rules are applied
-   - **Postprocessing**: Final cleanup and formatting
-6. **Output Generation**: Optimized content is written to the output file
-7. **Report Generation**: Detailed statistics and analysis are compiled into a report
+1. **Command Processing**:
+   - Parse command line arguments
+   - Validate inputs and paths
+   - Set up configuration
+
+2. **Directory Scanning**:
+   - Scan for matching files
+   - Apply ignore patterns
+   - Filter by extensions
+   - Respect .gitignore rules
+
+3. **Content Processing**:
+   - If auto mode:
+     1. Detect content type for each file
+     2. Route to appropriate helper
+   - If specific mode:
+     1. Use designated helper for all files
+   
+4. **Helper Processing Pipeline**:
+   - Preprocess: Prepare content and extract metadata
+   - Optimize: Apply content-specific rules
+   - Postprocess: Final cleanup and formatting
+
+5. **Output Generation**:
+   - Write optimized content
+   - Generate directory structure
+   - Create detailed report
+
+6. **Statistics and Reporting**:
+   - Calculate token/character reductions
+   - Compile optimization statistics
+   - Generate helper-specific metrics
+   - Create markdown report
 
 ## Helper Design Pattern
 
-The `ContentHelperBase` defines a template method pattern where:
-1. `process_file()` is the template method that defines the workflow
-2. Subclasses override the abstract methods to provide specialized behavior
-3. The factory method `get_content_helper()` returns the appropriate concrete implementation
+Uses the Template Method pattern:
+1. `ContentHelperBase` defines the processing workflow
+2. Each helper implements specialized behavior
+3. Factory method returns appropriate helper
+4. Unified optimizer coordinates helper selection
 
-This design allows for:
-- Consistent interface across all helpers
-- Specialized logic for different content types
+Benefits:
+- Consistent interface across helpers
+- Specialized processing per content type
 - Easy addition of new helpers
+- Centralized optimization coordination
 
 ## Adding a New Helper
 
-To create a new specialized helper:
-
-1. Create a new file in `content_helpers/` (e.g., `my_helper.py`)
-2. Define a class that extends `ContentHelperBase`
-3. Implement all required abstract methods
-4. Add detection patterns specific to your content type
-5. Register the helper in `content_helpers/__init__.py` 
-6. Update documentation as needed
+1. Create new file in `content_helpers/`
+2. Extend `ContentHelperBase`
+3. Implement required methods
+4. Add detection patterns
+5. Register in `__init__.py`
+6. Update documentation
 
 Example:
 ```python
-# content_helpers/my_helper.py
 from .base_helper import ContentHelperBase
 
-class MyHelper(ContentHelperBase):
+class NewHelper(ContentHelperBase):
     def __init__(self, **kwargs):
-        super().__init__(name="MyHelper", **kwargs)
-        # Initialize settings and stats
+        super().__init__(name="NewHelper", **kwargs)
         
     def detect_content_type(self, file_path, content=None):
         # Return confidence score 0.0-1.0
         
     def preprocess_content(self, content, file_path=None):
-        # Prepare content and extract metadata
+        # Prepare content
         
     def optimize_content(self, content, file_path=None):
-        # Apply content-specific optimizations
+        # Apply optimizations
         
     def postprocess_content(self, content, file_path=None):
-        # Final formatting and cleanup
-```
-
-Then register in `__init__.py`:
-```python
-from .my_helper import MyHelper
-
-def get_content_helper(content_type, **kwargs):
-    helpers = {
-        # ... existing helpers ...
-        'my_type': MyHelper,
-    }
-    # ... rest of function ...
+        # Final processing
 ```
 
 ## Future Development
 
-Areas for future enhancement:
+1. **Test Suite**:
+   - Unit tests for helpers
+   - Integration tests
+   - Performance benchmarks
 
-1. **Test Suite**: Develop comprehensive unit and integration tests
-2. **Web Interface**: Create a web UI for easier file processing
-3. **Additional Helpers**: Support for more specialized content types
-4. **Optimization Profiles**: Predefined optimization settings for different use cases
-5. **Plugin System**: Allow for dynamic loading of additional optimization rules
-6. **Language Support**: Improve handling of non-English content
+2. **Web Interface**:
+   - Browser-based optimization
+   - Real-time preview
+   - Configuration UI
+
+3. **Enhanced Helpers**:
+   - PDF content processing
+   - Image caption handling
+   - Code documentation
+   - API documentation
+
+4. **Optimization Profiles**:
+   - Use case specific settings
+   - Custom rule sets
+   - Profile sharing
+
+5. **Plugin System**:
+   - Dynamic rule loading
+   - Custom helper plugins
+   - Extension framework
+
+6. **Language Support**:
+   - Multi-language processing
+   - Character set handling
+   - RTL text support

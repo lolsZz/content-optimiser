@@ -32,18 +32,24 @@ The tool can greatly reduce token usage and improve context quality by removing 
   - `notion`: Specialized handling for Notion.so exports
   - `email`: Optimized for email content and threads
   - `markdown`: Enhanced for Markdown and HTML content
-- **Versatile Processing Options**:
-  - Process entire directories of files with custom filtering
-  - Process individual files with specific optimizations
-  - Handle Notion exports with specialized formatting
-  - Process email threads while maintaining readability
-- **Advanced Features**:
+- **Language-Aware Code Processing**:
+  - Automatic programming language detection
+  - Language-specific optimization rules
+  - Preserves important code structures and comments
+  - Smart handling of imports and dependencies
+- **Advanced Optimization Features**:
   - Policy page filtering (privacy policies, terms of service)
   - Detailed markdown reports with optimization statistics
   - Token counting with OpenAI's tiktoken library
   - Respect .gitignore patterns during directory scans
   - Visual progress tracking during processing
   - Colorized command-line interface
+- **Content-Type Specific Processing**:
+  - Email threads and forwarded messages
+  - Notion export-specific formatting
+  - Documentation structure preservation
+  - Code repository optimization
+  - Mixed content handling
 - **NEW: LLM Training Data Generation**:
   - Convert optimized content into various LLM training formats
   - Generate instruction tuning data, conversational data, and more
@@ -94,7 +100,7 @@ python generate_training_data.py -i ./optimized-content.md -f instruction
 
 ### Prerequisites
 
-- Python 3.6+
+- Python 3.9+
 - Optional dependencies:
   - `tqdm`: For visual progress bars (highly recommended)
   - `tiktoken`: For accurate token counting (OpenAI models)
@@ -200,6 +206,7 @@ The script generates two files:
    - Character and token reduction statistics
    - Breakdown of applied optimizations by category
    - Content type detection results
+   - Language detection results for code files
    - Skipped files and policy pages
    - Warnings encountered during processing
 
