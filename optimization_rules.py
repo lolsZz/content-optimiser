@@ -174,24 +174,52 @@ ENHANCED_FORM_CONTENT_PATTERN = re.compile(
         r"(?:" # Start of elements group
             # Required field indicator
             r"(?:\*\s*indicates required[^\n]*\n+)"
+            r"|(?:-\s*indicates required[^\n]*\n+)"
             # Form fields with labels (First Name, Last Name, Email, etc.)
             r"|(?:\s*(?:First|Last)?\s*Name\s*(?:\*|\(required\))?\s*\n+)"
             r"|(?:\s*Email\s*(?:Address)?\s*(?:\*|\(required\))?\s*\n+)"
             r"|(?:\s*Phone\s*(?:Number)?\s*(?:\*|\(required\))?\s*\n+)"
             r"|(?:\s*Message\s*(?:\*|\(required\))?\s*\n+)"
             r"|(?:\s*Comments?\s*(?:\*|\(required\))?\s*\n+)"
-            # Bot prevention comment
-            r"|(?:/\*.*?real people should not fill this in.*?\*/\s*\n*)"
-            # GDPR messages and privacy notices
+            # Bot prevention comment - exact match for the common pattern
+            r"|(?:/\*\s*real people should not fill this in[^*]*\*/\s*\n*)"
+            # GDPR messages and privacy notices with more complete patterns
             r"|(?:\s*Your\s+(?:data|privacy|information).*?important.*?\n+)"
             r"|(?:\s*We\s+(?:do\s+not\s+share|use|collect).*?information.*?\n+)"
-            r"|(?:\s*You\s+can\s+unsubscribe.*?(?:anytime|at\s+any\s+time).*?\n+)"
+            r"|(?:\s*You\s+can\s+unsubscribe.*?(?:anytime|at\s+any\s+time|by clicking).*?\n+)"
             # Submit buttons and form endings
             r"|(?:\s*(?:Submit|Send|Register|Subscribe|Sign\s+Up).*?\n+)"
         r")+" # Match one or more form elements
     r")" # End of form body capture group
     r"(?:\s*Archives)?", # Optional "Archives" text often found after forms
     re.DOTALL | re.MULTILINE | re.IGNORECASE
+)
+
+# Add an additional pattern specifically for the format in the example
+SUBSCRIPTION_FORM_PATTERN = re.compile(
+    r"(?:^|\n+)(## Subscribe for Updates on[^\n]*\n\n)"  # Capture the title
+    r"(?:-\s+indicates required\n\n)"                    # Required field indicator with dash
+    r"(?:First Name\n\n)?"                               # Optional First Name field
+    r"(?:Last Name\n\n)?"                                # Optional Last Name field
+    r"(?:Email Address[^\n]*\n\n)"                       # Email field
+    r"(?:/\*[^*]*\*/\n\n)?"                              # Optional bot prevention comment
+    r"(?:Your data privacy[^\n]*(?:\n[^\n]+)*\n\n)?"     # Optional privacy text
+    r"(?:Archives)?",                                    # Optional Archives text
+    re.MULTILINE | re.DOTALL
+)
+
+# Create a very specific pattern for the subscription form in your example
+ERDINGTON_BATHS_FORM_PATTERN = re.compile(
+    r"/\s*\n"  # Starts with a forward slash followed by newline
+    r"If you would like to be kept updated on the progress of the transformation of Erdington Baths.*?\n\n"  # First paragraph
+    r"We are thrilled to have you join our community.*?\n\n"  # Second paragraph
+    r"## Subscribe for Updates on Erdington Enterprise Hub\n\n"  # Heading
+    r"- indicates required\n\n"  # Required indicator
+    r"First Name\n\n"  # First name field
+    r"Last Name\n\n"  # Last name field
+    r"Email Address \*\n\n"  # Email field with asterisk
+    r"/\* real people should not fill this in.*?\*/",  # Bot prevention comment
+    re.MULTILINE | re.DOTALL
 )
 
 # --- Notion Export Specific Patterns ---
@@ -258,6 +286,8 @@ OPTIMIZATION_RULES_ORDERED = [
 
     # 6. New Patterns
     ("Duplicate Headings", DUPLICATE_HEADING_PATTERN),
+    ("Erdington Baths Form", ERDINGTON_BATHS_FORM_PATTERN), # Added new pattern
+    ("Subscription Form", SUBSCRIPTION_FORM_PATTERN),
     ("Enhanced Form Content", ENHANCED_FORM_CONTENT_PATTERN),
 ]
 

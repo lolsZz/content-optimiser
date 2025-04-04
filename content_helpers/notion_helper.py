@@ -259,19 +259,28 @@ class NotionHelper(ContentHelperBase):
                 result = new_content
                 stats["Notion Toggles"] = count
         
+        # Try the specific subscription form pattern first
+        if 'SUBSCRIPTION_FORM_PATTERN' in globals():
+            new_content, count = SUBSCRIPTION_FORM_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Subscription Form"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
+        
+        # Then try the enhanced form content pattern
+        if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
+            new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Form Content"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
+        
         # Remove duplicate headings (identical headings repeated consecutively)
         if 'DUPLICATE_HEADING_PATTERN' in globals():
             new_content, count = DUPLICATE_HEADING_PATTERN.subn(r'\1', result)
             if count > 0:
                 result = new_content
                 stats["Duplicate Headings"] = count
-        
-        # Handle enhanced form content pattern
-        if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
-            new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
-            if count > 0:
-                result = new_content
-                stats["Form Content"] = count
         
         return result, dict(stats)
     

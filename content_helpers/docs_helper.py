@@ -185,7 +185,15 @@ class DocsHelper(ContentHelperBase):
             stats["Duplicate Headings Removed"] = count
             self.stats["helper_specific_data"]["duplicate_headings_removed"] = self.stats["helper_specific_data"].get("duplicate_headings_removed", 0) + count
         
-        # Handle enhanced form content pattern
+        # First try the specific subscription form pattern
+        if 'SUBSCRIPTION_FORM_PATTERN' in globals():
+            new_content, count = SUBSCRIPTION_FORM_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Subscription Form Removed"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
+        
+        # Then try the enhanced form content pattern
         if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
             new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
             if count > 0:

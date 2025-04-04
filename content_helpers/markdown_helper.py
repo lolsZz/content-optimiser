@@ -156,16 +156,14 @@ class MarkdownHelper(ContentHelperBase):
         Returns:
             tuple: (optimized_content, optimization_stats)
         """
-        if not isinstance(content_data, dict):
-            # Handle case where content wasn't preprocessed
-            content = content_data
+        if isinstance(content_data, dict):
+            content = content_data.get('content', '')
         else:
-            content = content_data['content']
-            file_path = content_data.get('file_path', file_path)
-        
+            content = content_data
+            
         if not content:
             return content, {}
-        
+            
         result = content
         stats = defaultdict(int)
         
@@ -240,12 +238,21 @@ class MarkdownHelper(ContentHelperBase):
             stats["Duplicate Headings Removed"] = count
             self.stats["helper_specific_data"]["duplicate_headings_removed"] += count
         
-        # Handle enhanced form content pattern
-        new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn('', result)
-        if count > 0:
-            result = new_content
-            stats["Form Content Removed"] = count
-            self.stats["helper_specific_data"]["forms_removed"] += count
+        # Try the specific subscription form pattern first
+        if 'SUBSCRIPTION_FORM_PATTERN' in globals():
+            new_content, count = SUBSCRIPTION_FORM_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Subscription Form Removed"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
+        
+        # Then try the enhanced form content pattern
+        if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
+            new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Form Content Removed"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
         
         return result, dict(stats)
     

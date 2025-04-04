@@ -76,6 +76,33 @@ except ImportError as e:
     print(f"Error: Required module not found. {e}", file=sys.stderr)
     CONTENT_HELPERS_AVAILABLE = False
 
+# Import the new report generator module
+try:
+    from report_generator import generate_report
+    REPORT_GENERATOR_AVAILABLE = True
+except ImportError:
+    REPORT_GENERATOR_AVAILABLE = False
+    # Fallback simple report generation if the module isn't available
+    def generate_report(report_filename: str, stats: dict):
+        """Simple fallback report generator"""
+        try:
+            with open(report_filename, 'w', encoding='utf-8') as f:
+                f.write("# Content Optimization Report\n\n")
+                f.write(f"**Run Timestamp:** {stats.get('timestamp', 'N/A')}\n")
+                f.write(f"**Mode:** {stats.get('mode', 'N/A')}\n")
+                f.write(f"**Input:** {stats.get('input_source', 'N/A')}\n")
+                f.write(f"**Output:** {stats.get('output_file', 'N/A')}\n\n")
+                f.write("## Statistics\n")
+                f.write(f"- Files processed: {stats.get('files_processed', 0)}\n")
+                f.write(f"- Character reduction: {stats.get('char_reduction', 'N/A')}%\n")
+                f.write(f"- Token reduction: {stats.get('token_reduction', 'N/A')}%\n")
+                f.write(f"- Processing time: {stats.get('processing_time', 0):.2f} seconds\n")
+            print(f"Basic report generated: {report_filename}")
+            return True
+        except Exception as e:
+            print(f"Error generating report: {e}")
+            return False
+
 # --- Configuration Constants ---
 VERSION = "2.0.0"
 DEFAULT_MODE = "docs"
@@ -740,7 +767,7 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     processing_time = time.time() - start_time
     print_success(f"Optimization complete in {processing_time:.2f} seconds")
 
-    # Generate report
+    # Generate report with enhanced report generator
     report_stats = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "mode": mode,
@@ -763,109 +790,21 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
         "scan_extensions": ','.join(sorted(list(scan_extensions))),
         "scan_ignore_patterns": scan_ignore_patterns,
         "scan_use_gitignore": scan_use_gitignore,
+        "GITIGNORE_AVAILABLE": GITIGNORE_AVAILABLE,
         "detected_types": dict(detected_types),
-        "aggregated_stats": dict(aggregated_stats)
+        "aggregated_stats": dict(aggregated_stats),
+        "rule_trigger_stats": dict(rule_trigger_stats) if "rule_trigger_stats" in locals() else {},
+        "helper_specific_data": helper.get_stats()["helper_specific_data"] if mode != "auto" and "helper" in locals() else {}
     }
     
     try:
+        if REPORT_GENERATOR_AVAILABLE:
+            print_info("Using enhanced report generator")
         generate_report(report_filename, report_stats)
         print_success(f"Report generated: {report_filename}")
     except Exception as e:
         print_error(f"Failed to generate report: {e}")
         processing_warnings.append(f"Report generation error: {e}")
-
-def generate_report(report_filename: str, stats: dict):
-    """
-    Generates a detailed markdown report file summarizing the optimization run.
-    """
-    # Ensure report directory exists
-    report_dir = os.path.dirname(report_filename)
-    if report_dir and not os.path.exists(report_dir):
-        os.makedirs(report_dir)
-    
-    with open(report_filename, 'w', encoding='utf-8') as f:
-        # Header
-        f.write("# Content Optimization Report\n\n")
-        f.write(f"**Run Timestamp:** {stats.get('timestamp', 'N/A')}\n")
-        f.write(f"**Optimization Mode:** `{stats.get('mode', 'N/A')}`\n")
-        f.write(f"**Input Source:** `{stats.get('input_source', 'N/A')}`\n\n")
-        
-        # Output file info
-        f.write("## Output File\n")
-        f.write(f"- **Output Path:** `{stats.get('output_file', 'N/A')}`\n\n")
-        
-        # Scan configuration
-        f.write("## Scan Configuration\n")
-        f.write(f"- **Included Extensions:** `{stats.get('scan_extensions', 'N/A')}`\n")
-        ignore_pats = stats.get('scan_ignore_patterns', [])
-        ignore_pats_str = ', '.join(f"`{p}`" for p in ignore_pats) if ignore_pats else 'None'
-        f.write(f"- **Ignored Patterns:** {ignore_pats_str}\n")
-        f.write(f"- **Used .gitignore:** {'Yes' if stats.get('scan_use_gitignore', False) else 'No'}\n\n")
-        
-        # Content type detection results (if auto mode)
-        if stats.get('mode') == 'auto' and stats.get('detected_types'):
-            f.write("## Content Type Detection\n")
-            f.write("| Content Type | Files |\n")
-            f.write("|-------------|------:|\n")
-            for content_type, count in sorted(stats.get('detected_types', {}).items()):
-                f.write(f"| {content_type} | {count} |\n")
-            f.write("\n")
-        
-        # Overall statistics
-        f.write("## Optimization Statistics\n")
-        f.write("| Metric | Original | Optimized | Reduction |\n")
-        f.write("|--------|----------|-----------|----------|\n")
-        f.write(f"| Character Count | {format_stat(stats.get('original_chars', 0))} | {format_stat(stats.get('optimized_chars', 0))} | {format_stat(stats.get('char_reduction', -1))} |\n")
-        f.write(f"| Token Count | {format_stat(stats.get('original_tokens', -1))} | {format_stat(stats.get('optimized_tokens', -1))} | {format_stat(stats.get('token_reduction', -1))} |\n")
-        f.write(f"| Files Processed | {stats.get('files_processed', 0)} | | |\n")
-        if stats.get('files_skipped', 0) > 0:
-            f.write(f"| Files Skipped | {stats.get('files_skipped', 0)} | | |\n")
-        f.write(f"| Processing Time | {stats.get('processing_time', 0):.2f} seconds | | |\n\n")
-        
-        # Optimizations applied
-        f.write("## Optimizations Applied\n")
-        
-        # Summary text
-        files_processed = stats.get('files_processed', 0)
-        f.write(f"- Processed **{files_processed}** files\n")
-        
-        if stats.get('char_reduction', -1) > 0:
-            chars_removed = stats.get('original_chars', 0) - stats.get('optimized_chars', 0)
-            f.write(f"- Removed **{chars_removed:,}** characters, reducing content size by {format_stat(stats.get('char_reduction', 0))}.\n")
-        
-        if stats.get('token_reduction', -1) > 0:
-            tokens_removed = stats.get('original_tokens', 0) - stats.get('optimized_tokens', 0)
-            f.write(f"- Reduced token count by **{tokens_removed:,}** tokens ({format_stat(stats.get('token_reduction', 0))}).\n")
-        
-        # Show aggregated optimization stats
-        aggregated_stats = stats.get('aggregated_stats', {})
-        if aggregated_stats:
-            f.write("\n### Optimization Actions\n")
-            f.write("| Action | Count |\n")
-            f.write("|--------|------:|\n")
-            for action, count in sorted(aggregated_stats.items()):
-                if isinstance(count, (int, float)) and count > 0:
-                    f.write(f"| {action} | {count:,} |\n")
-            f.write("\n")
-        
-        # Warnings section
-        f.write("## Warnings and Issues\n")
-        warnings_list = stats.get('warnings', [])
-        if warnings_list:
-            for warning in warnings_list:
-                f.write(f"- `{warning}`\n")
-        else:
-            f.write("None\n")
-        
-        # Conclusion
-        f.write("\n## Conclusion\n")
-        conclusion = f"Content optimization completed successfully, processing {files_processed} files"
-        if stats.get('char_reduction', -1) > 0:
-            conclusion += f" with a {format_stat(stats.get('char_reduction', 0))} reduction in content size"
-        if stats.get('token_reduction', -1) > 0:
-            conclusion += f" and {format_stat(stats.get('token_reduction', 0))} reduction in tokens"
-        conclusion += "."
-        f.write(conclusion)
 
 def main():
     """Parses command-line arguments and initiates the optimization process."""
