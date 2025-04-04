@@ -683,10 +683,18 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     char_reduction = -1.0
     if original_chars > 0:
         char_reduction = ((original_chars - optimized_chars) / original_chars) * 100
+        # Handle the case where optimization actually increased size
+        if char_reduction < 0:
+            print_warning(f"Character count increased by {abs(char_reduction):.2f}% after optimization")
+            char_reduction = -1.0  # Reset to -1 to indicate no reduction in reporting
     
     token_reduction = -1.0
     if original_tokens > 0 and optimized_tokens > -1:
         token_reduction = ((original_tokens - optimized_tokens) / original_tokens) * 100
+        # Handle the case where optimization increased token count
+        if token_reduction < 0:
+            print_warning(f"Token count increased by {abs(token_reduction):.2f}% after optimization")
+            token_reduction = -1.0  # Reset to -1 to indicate no reduction in reporting
 
     # Write output file
     print_header("Writing Output")
@@ -711,11 +719,15 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     
     if char_reduction > 0:
         print_success(f"Character Reduction: {char_reduction:.2f}%")
+    elif optimized_chars > original_chars:
+        print_warning(f"Character Count Increased: {((optimized_chars - original_chars) / original_chars) * 100:.2f}%")
     else:
         print_info("Character Reduction: N/A")
     
     if token_reduction > 0:
         print_success(f"Token Reduction: {token_reduction:.2f}%")
+    elif optimized_tokens > original_tokens:
+        print_warning(f"Token Count Increased: {((optimized_tokens - original_tokens) / original_tokens) * 100:.2f}%")
     else:
         print_info("Token Reduction: N/A")
     

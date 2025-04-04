@@ -135,6 +135,9 @@ class ContentHelperBase(ABC):
         if not content:
             return "", {"empty_file": 1}
         
+        # Store original content length for comparison
+        original_length = len(content)
+        
         # Apply the full pipeline
         try:
             preprocessed = self.preprocess_content(content, file_path)
@@ -149,6 +152,14 @@ class ContentHelperBase(ABC):
             if final is None:
                 final = ""
                 opt_stats["error"] = "Postprocessing returned None content"
+            
+            # Check if optimization actually reduced size
+            final_length = len(final)
+            if final_length > original_length:
+                # If optimization increased size, revert to original content
+                opt_stats["size_increased"] = final_length - original_length
+                opt_stats["reverted_to_original"] = True
+                return content, opt_stats
                 
             return final, opt_stats
         except Exception as e:

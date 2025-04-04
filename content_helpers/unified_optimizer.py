@@ -103,6 +103,18 @@ class UnifiedOptimizer:
             self.stats["errors"].append(error_msg)
             return "", {"error": error_msg}
         
+        # Read content if not provided
+        if content is None and os.path.isfile(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+            except Exception as e:
+                self.stats["errors"].append(f"Error reading {file_path}: {str(e)}")
+                return None, {"error": str(e)}
+        
+        # Store original content length for comparison
+        original_length = len(content) if content else 0
+        
         # Detect content type if not forced
         if force_mode:
             content_type = force_mode
@@ -112,15 +124,6 @@ class UnifiedOptimizer:
             self.stats["detected_types"][content_type] += 1
             self.stats["auto_detected"] += 1
             result_stats["detection"] = {"mode": "auto", "type": content_type, "confidence": confidence}
-        
-        # Read content if not provided
-        if content is None and os.path.isfile(file_path):
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-            except Exception as e:
-                self.stats["errors"].append(f"Error reading {file_path}: {str(e)}")
-                return "", {"error": str(e)}
         
         # Handle empty content case
         if not content:
@@ -137,6 +140,12 @@ class UnifiedOptimizer:
             processing_time = time.time() - start_time
             self.stats["processing_time"] += processing_time
             
+            # Check for size increase
+            if "size_increased" in opt_stats and opt_stats.get("reverted_to_original", False):
+                self.stats["size_increases"] = self.stats.get("size_increases", 0) + 1
+                result_stats["size_increased"] = opt_stats["size_increased"]
+                result_stats["reverted_to_original"] = True
+            
             # Combine stats
             result_stats.update(opt_stats)
             result_stats["processing_time"] = processing_time
@@ -145,6 +154,14 @@ class UnifiedOptimizer:
             if optimized_content is None:
                 optimized_content = ""
                 result_stats["error"] = "Helper returned None content"
+                
+            # Final size check - if optimization increased size substantially, revert to original
+            optimized_length = len(optimized_content) if optimized_content else 0
+            if optimized_length > original_length * 1.05:  # More than 5% size increase
+                self.stats["reverted_optimizations"] = self.stats.get("reverted_optimizations", 0) + 1
+                result_stats["size_increased"] = optimized_length - original_length
+                result_stats["reverted_to_original"] = True
+                return content, result_stats
                 
             return optimized_content, result_stats
         except Exception as e:
