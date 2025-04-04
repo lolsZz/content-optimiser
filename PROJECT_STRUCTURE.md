@@ -1,6 +1,6 @@
 # Content Optimizer - Project Structure
 
-This document provides an overview of the Content Optimizer project structure to help developers understand the organization of the codebase and make contributions or modifications.
+This document provides an overview of the Content Optimizer's project structure, modules, and key components to help developers understand and contribute to the project.
 
 ## Directory Structure
 
@@ -20,13 +20,25 @@ This document provides an overview of the Content Optimizer project structure to
 │       └── demo.gif               # Demo image for README
 ├── tests/                         # Test suite (future development)
 ├── optimize.py                    # Main script - entry point for the application
+├── generate_training_data.py      # Script for generating LLM training data from optimized content
 ├── optimize-quick.sh              # Bash wrapper for common optimization scenarios
+├── fix-permissions.sh             # Script to set proper executable permissions
 ├── optimization_rules.py          # Pattern definitions and optimization rules
 ├── PROJECT_STRUCTURE.md           # This file - project structure documentation
 ├── README.md                      # Project overview and quick start guide
 ├── USAGE_GUIDE.md                 # Detailed usage guide with examples
 └── requirements.txt               # Project dependencies
 ```
+
+## Core Files
+
+- `optimize.py` - Main script for content optimization
+- `generate_training_data.py` - Script for generating LLM training data from optimized content
+- `optimization_rules.py` - Defines patterns and rules for content optimization
+- `requirements.txt` - Python dependencies
+- `optimize-quick.sh` - Bash script for quick usage
+- `fix-permissions.sh` - Script to set proper executable permissions
+- `README.md` - Project documentation
 
 ## Core Modules
 

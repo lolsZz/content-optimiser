@@ -1,6 +1,6 @@
 # Content Optimizer
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue) 
+![Version](https://img.shields.io/badge/version-2.1.0-blue) 
 ![Python](https://img.shields.io/badge/python-3.6%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -44,6 +44,11 @@ The tool can greatly reduce token usage and improve context quality by removing 
   - Respect .gitignore patterns during directory scans
   - Visual progress tracking during processing
   - Colorized command-line interface
+- **NEW: LLM Training Data Generation**:
+  - Convert optimized content into various LLM training formats
+  - Generate instruction tuning data, conversational data, and more
+  - Filter examples by token count for targeted training
+  - Multiple output formats: JSONL, CSV, Parquet, Hugging Face datasets
 
 ## 🚀 Quick Start
 
@@ -64,6 +69,9 @@ The simplest way to get started is with the `optimize-quick.sh` script:
 
 # For email content
 ./optimize-quick.sh email ./my-email-archive
+
+# Generate training data from an optimized file
+./optimize-quick.sh train ./optimized-content.md
 ```
 
 Or use the Python script directly with the quick options:
@@ -77,6 +85,9 @@ python optimize.py -q ./my-documentation-directory
 
 # Quick Notion export mode
 python optimize.py -n ./my-notion-export
+
+# Generate LLM training data
+python generate_training_data.py -i ./optimized-content.md -f instruction
 ```
 
 ## 📦 Installation
@@ -91,6 +102,8 @@ python optimize.py -n ./my-notion-export
   - `pygments`: For better code detection and language identification
   - `beautifulsoup4`: For better HTML cleaning in Markdown mode
   - `mail-parser`: For structured parsing of email content
+  - `pandas`: For Parquet export of training data
+  - `datasets`: For Hugging Face dataset export
 
 ### Basic Installation
 
@@ -142,6 +155,19 @@ python optimize.py -n ./my-notion-export
 ```bash
 # Process email files with specialized handling
 python optimize.py -d ./email-archives -m email
+```
+
+### Generate LLM Training Data
+
+```bash
+# Create instruction tuning data from an optimized file
+python generate_training_data.py -i ./optimized-content.md -f instruction
+
+# Create conversational data with custom token limits
+python generate_training_data.py -i ./optimized-content.md -f conversation --min_tokens 100 --max_tokens 2048
+
+# Process multiple files with a glob pattern
+python generate_training_data.py -i "./optimized-*.md" -f general -o ./training-data
 ```
 
 ### Filter Files by Type

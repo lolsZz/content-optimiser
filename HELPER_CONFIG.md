@@ -4,7 +4,102 @@ This document provides detailed information about the configuration options avai
 
 ## Configuration Overview
 
-Content helpers can be configured programmatically by passing keyword arguments. While this isn't directly exposed in the command-line interface, this document serves as a reference for developers who want to modify the code or create custom optimization workflows.
+Each content helper can be configured with specific options that control how it processes content. These settings determine what elements are preserved or removed during optimization.
+
+## LLM Training Data Generator
+
+The LLM Training Data Generator converts optimized content into training data formats suitable for fine-tuning Large Language Models.
+
+### Basic Configuration
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `data_format` | `instruction` | The format of the training data to generate: instruction, conversation, completion, question-answer, or general |
+| `output_format` | `jsonl` | The output file format: jsonl, csv, parquet (if pandas available), or hf_dataset (if datasets available) |
+| `max_examples` | `10000` | Maximum number of examples to generate per file |
+| `min_token_count` | `50` | Minimum token count for examples to include |
+| `max_token_count` | `1024` | Maximum token count for examples to include |
+| `include_metadata` | `True` | Whether to include metadata in generated examples |
+| `split_sections` | `True` | Whether to split content into sections for processing |
+| `verbose` | `True` | Whether to enable verbose output |
+
+### Usage Example
+
+```bash
+# Generate instruction-tuning data in JSONL format
+python generate_training_data.py -i ./optimized-content.md -f instruction
+
+# Generate conversation data with customized token limits
+python generate_training_data.py -i ./optimized-content.md -f conversation --min_tokens 100 --max_tokens 2048
+
+# Generate a comprehensive dataset with multiple formats
+python generate_training_data.py -i "./optimized-*.md" -f general --output_format csv
+```
+
+### Data Format Details
+
+#### Instruction Format
+
+```json
+{
+  "instruction": "Summarize the key points in this file",
+  "input": "Content to process...",
+  "output": "Summary of the content..."
+}
+```
+
+#### Conversation Format
+
+```json
+{
+  "messages": [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "What does this code do?"},
+    {"role": "assistant", "content": "This code implements a function to..."}
+  ]
+}
+```
+
+#### Completion Format
+
+```json
+{
+  "prompt": "def calculate_factorial(n):",
+  "completion": "    if n == 0 or n == 1:\n        return 1\n    else:\n        return n * calculate_factorial(n-1)"
+}
+```
+
+#### Question-Answer Format
+
+```json
+{
+  "question": "What is the purpose of this function?",
+  "answer": "This function calculates the factorial of a number using recursion."
+}
+```
+
+### Advanced Configuration
+
+You can create a JSON configuration file with custom settings:
+
+```json
+{
+  "data_format": "instruction",
+  "output_format": "jsonl",
+  "max_examples": 5000,
+  "min_token_count": 100,
+  "max_token_count": 2048,
+  "include_metadata": true,
+  "split_sections": true,
+  "separator": "================================================================"
+}
+```
+
+And use it with the `-c` flag:
+
+```bash
+python generate_training_data.py -i ./optimized-content.md -c ./config.json
+```
 
 ## Universal Configuration Options
 

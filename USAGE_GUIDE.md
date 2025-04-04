@@ -13,6 +13,7 @@ This guide provides detailed instructions and best practices for using the Conte
 - [Interpreting Reports](#interpreting-reports)
 - [Troubleshooting](#troubleshooting)
 - [Use Cases and Examples](#use-cases-and-examples)
+- [LLM Training Data Generation](#llm-training-data-generation)
 
 ## Understanding How Content Optimizer Works
 
@@ -502,37 +503,146 @@ This setup:
 - Preserves code structure and important comments
 - Removes boilerplate headers while keeping functional code
 
-## Command Line Reference
+## LLM Training Data Generation
+
+The Content Optimizer now includes a powerful feature to transform optimized content into various training data formats for Large Language Models.
+
+### Understanding Training Data Generation
+
+The LLM Training Data Generator analyzes your optimized content files and extracts meaningful examples in various formats suitable for fine-tuning or instruction-tuning language models. The generator can:
+
+1. Parse content into sections and identify suitable examples
+2. Generate different formats including instruction-tuning, conversation, and completion pairs
+3. Filter examples by token count to ensure high-quality training data
+4. Export data in various formats for compatibility with different training frameworks
+
+### Basic Usage
+
+```bash
+# Generate instruction-tuning data from an optimized file
+python generate_training_data.py -i ./optimized-content.md -f instruction
+
+# Generate conversation format data
+python generate_training_data.py -i ./optimized-content.md -f conversation
+
+# Generate completion format data
+python generate_training_data.py -i ./optimized-content.md -f completion
+
+# Generate question-answer format data
+python generate_training_data.py -i ./optimized-content.md -f question-answer
+
+# Generate a mix of all formats
+python generate_training_data.py -i ./optimized-content.md -f general
+```
+
+### Output Formats
+
+You can specify the format of the output files:
+
+```bash
+# Output as JSONL (default)
+python generate_training_data.py -i ./optimized-content.md --output_format jsonl
+
+# Output as CSV
+python generate_training_data.py -i ./optimized-content.md --output_format csv
+
+# Output as Parquet (requires pandas)
+python generate_training_data.py -i ./optimized-content.md --output_format parquet
+
+# Output as Hugging Face dataset (requires datasets library)
+python generate_training_data.py -i ./optimized-content.md --output_format hf_dataset
+```
+
+### Advanced Configuration
+
+```bash
+# Customize token limits for examples
+python generate_training_data.py -i ./optimized-content.md --min_tokens 100 --max_tokens 2048
+
+# Set maximum number of examples to generate
+python generate_training_data.py -i ./optimized-content.md --max_examples 5000
+
+# Exclude metadata from examples
+python generate_training_data.py -i ./optimized-content.md --no_metadata
+
+# Use a specific random seed for reproducibility
+python generate_training_data.py -i ./optimized-content.md --seed 42
+
+# Process multiple files with glob patterns
+python generate_training_data.py -i "./optimized-*.md" -f instruction
+
+# Specify output directory
+python generate_training_data.py -i ./optimized-content.md -o ./training-data
+```
+
+### Understanding Training Data Formats
+
+The generator supports multiple training data formats:
+
+1. **Instruction Format** (`instruction`): Generates examples with instruction-input-output structure, ideal for instruction-tuning models like Alpaca or Llama formats.
+
+2. **Conversation Format** (`conversation`): Creates multi-turn conversations with system, user, and assistant messages, suitable for ChatGPT-style models.
+
+3. **Completion Format** (`completion`): Produces prompt-completion pairs, perfect for basic text generation models.
+
+4. **Question-Answer Format** (`question-answer`): Creates simple Q&A pairs extracted from the content.
+
+5. **General Format** (`general`): A mix of all the above formats for diverse training data.
+
+### Example Workflow: From Raw Content to Training Data
+
+This comprehensive workflow demonstrates how to go from raw content to training data:
+
+```bash
+# Step 1: Optimize raw content
+python optimize.py -d ./raw-documentation -m docs -o ./optimized/docs-cleaned.md
+
+# Step 2: Generate training data in instruction format
+python generate_training_data.py -i ./optimized/docs-cleaned.md -f instruction -o ./training-data
+
+# Step 3: Generate additional conversation format data
+python generate_training_data.py -i ./optimized/docs-cleaned.md -f conversation -o ./training-data
+
+# Step 4: The training data is now ready for use with your LLM training framework
+```
+
+### Use Case: Creating a Technical Documentation Assistant
+
+```bash
+# Optimize a directory of technical documentation
+python optimize.py -d ./technical-docs -m docs -o ./optimized/tech-docs.md
+
+# Generate instruction tuning data with appropriate token limits for technical content
+python generate_training_data.py -i ./optimized/tech-docs.md -f instruction --min_tokens 100 --max_tokens 2048 -o ./training-data
+
+# Generate conversation data to simulate user questions and assistant responses
+python generate_training_data.py -i ./optimized/tech-docs.md -f conversation -o ./training-data
+```
+
+### Command Line Reference
 
 ```
-usage: optimize.py [-h] (-d INPUT_DIR | -i INPUT_FILE | -q DIR | -n DIR | -a DIR)
-                   [-o OUTPUT_FILE] [-m {code,docs,notion,email,markdown,auto}]
-                   [--report_file REPORT_FILE] [--extensions EXTENSIONS]
-                   [--ignore IGNORE] [--use-gitignore]
-                   [--policy-filter | --no-policy-filter]
+usage: generate_training_data.py [-h] -i INPUT_FILE [-f {instruction,conversation,completion,question-answer,general}]
+                                 [--output_format {jsonl,csv,parquet,hf_dataset}] [--min_tokens MIN_TOKENS]
+                                 [--max_tokens MAX_TOKENS] [--max_examples MAX_EXAMPLES] [--no_metadata]
+                                 [--seed SEED] [-o OUTPUT_DIR]
 
 options:
   -h, --help            show this help message and exit
-  -d INPUT_DIR, --input_dir INPUT_DIR
-                        Path to the root directory of the content to scan.
-  -i INPUT_FILE, --input_file INPUT_FILE
-                        Path to the input file (e.g., a Repomix file).
-  -q DIR, --quick DIR   Quick optimization with sensible defaults (docs mode)
-  -n DIR, --notion DIR  Process a Notion.so export directory
-  -a DIR, --auto DIR    Auto-detect content types
-  -o OUTPUT_FILE, --output_file OUTPUT_FILE
-                        Path for the optimized output file. If omitted, generated
-                        automatically based on input name and timestamp.
-  -m {code,docs,notion,email,markdown,auto}, --mode {code,docs,notion,email,markdown,auto}
-                        Optimization mode. Use 'auto' for content type detection.
-  --report_file REPORT_FILE
-                        Path for the optimization report file.
-  --extensions EXTENSIONS
-                        Comma-separated list of file extensions to include.
-  --ignore IGNORE       Comma-separated list of glob patterns to ignore.
-  --use-gitignore       Respect .gitignore rules during scanning.
-  --policy-filter       Enable filtering of potential policy pages (default).
-  --no-policy-filter    Disable filtering of policy pages (process all files).
+  -i INPUT_FILE         Path to the input file containing optimized content.
+  -f {instruction,conversation,completion,question-answer,general}
+                        Format of training data to generate.
+  --output_format {jsonl,csv,parquet,hf_dataset}
+                        Format of the output file.
+  --min_tokens MIN_TOKENS
+                        Minimum token count for examples.
+  --max_tokens MAX_TOKENS
+                        Maximum token count for examples.
+  --max_examples MAX_EXAMPLES
+                        Maximum number of examples to generate.
+  --no_metadata         Exclude metadata from examples.
+  --seed SEED           Random seed for reproducibility.
+  -o OUTPUT_DIR         Directory to save the generated training data.
 ```
 
 ## Conclusion
@@ -544,3 +654,5 @@ Content Optimizer offers a powerful way to prepare text content for LLM consumpt
 - Focus the LLM on the most important information
 
 With specialized content helpers, you can now achieve even better results across different content types. Experiment with different configurations to find the optimal balance between noise removal and content preservation for your specific use case.
+
+The addition of the LLM Training Data Generator further enhances the tool's capabilities, enabling you to create high-quality training datasets for fine-tuning and instruction-tuning language models.

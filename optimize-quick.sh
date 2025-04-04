@@ -32,6 +32,7 @@ print_usage() {
   echo -e "  ${GREEN}notion${RESET}  Optimize Notion.so exports"
   echo -e "  ${GREEN}email${RESET}   Optimize email content"
   echo -e "  ${GREEN}markdown${RESET} Optimize Markdown/HTML content"
+  echo -e "  ${GREEN}train${RESET}   Generate LLM training data from optimized content"
   echo -e "  ${GREEN}help${RESET}    Show this help message"
   echo
   echo "Examples:"
@@ -40,6 +41,7 @@ print_usage() {
   echo -e "  ${YELLOW}./optimize-quick.sh code ./my-repository${RESET}"
   echo -e "  ${YELLOW}./optimize-quick.sh notion ./my-notion-export${RESET}"
   echo -e "  ${YELLOW}./optimize-quick.sh email ./my-email-archive${RESET}"
+  echo -e "  ${YELLOW}./optimize-quick.sh train ./optimized-content.md${RESET}"
   echo
 }
 
@@ -54,8 +56,11 @@ if [ ! -f "optimize.py" ]; then
   exit 1
 fi
 
-# Make sure the script is executable
+# Make sure the scripts are executable
 chmod +x optimize.py
+if [ -f "generate_training_data.py" ]; then
+  chmod +x generate_training_data.py
+fi
 
 # Process arguments
 if [ $# -lt 1 ] || [ "$1" = "help" ]; then
@@ -66,7 +71,7 @@ fi
 MODE="auto"  # Default mode - use auto-detection
 INPUT=""
 
-if [ "$1" = "docs" ] || [ "$1" = "code" ] || [ "$1" = "notion" ] || [ "$1" = "email" ] || [ "$1" = "markdown" ] || [ "$1" = "auto" ]; then
+if [ "$1" = "docs" ] || [ "$1" = "code" ] || [ "$1" = "notion" ] || [ "$1" = "email" ] || [ "$1" = "markdown" ] || [ "$1" = "auto" ] || [ "$1" = "train" ]; then
   MODE="$1"
   INPUT="$2"
 else
@@ -78,6 +83,21 @@ if [ -z "$INPUT" ]; then
   echo -e "${YELLOW}Error: No input specified${RESET}" >&2
   print_usage
   exit 1
+fi
+
+# Handle train mode separately
+if [ "$MODE" = "train" ]; then
+  if [ ! -f "generate_training_data.py" ]; then
+    echo -e "${YELLOW}Error: generate_training_data.py not found in current directory${RESET}" >&2
+    exit 1
+  fi
+  
+  print_header "GENERATING LLM TRAINING DATA FROM: $INPUT"
+  print_info "Using instruction format (default)"
+  
+  # Run the training data generator
+  python3 generate_training_data.py -i "$INPUT" -f instruction
+  exit $?
 fi
 
 # Determine if input is a directory or file
