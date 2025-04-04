@@ -52,17 +52,15 @@ The optimization process follows these steps:
 git clone https://github.com/yourusername/content-optimiser.git
 cd content-optimiser
 
-# Create a virtual environment
-python -m venv venv
-
-# Activate the virtual environment
+# Create and activate a virtual environment
+uv venv
 # On Linux/Mac:
-source venv/bin/activate
+source .venv/bin/activate
 # On Windows:
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ### Install Optional Dependencies
@@ -70,7 +68,7 @@ pip install -r requirements.txt
 For the best experience, install all optional dependencies:
 
 ```bash
-pip install tqdm tiktoken gitignore-parser pygments beautifulsoup4 mail-parser
+uv pip install tqdm tiktoken gitignore-parser pygments beautifulsoup4 mail-parser
 ```
 
 ### Verifying Your Installation

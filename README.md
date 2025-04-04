@@ -1,7 +1,7 @@
 # Content Optimizer
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue) 
-![Python](https://img.shields.io/badge/python-3.6%2B-green)
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Python](https://img.shields.io/badge/python-3.9%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
 A Python tool for cleaning and optimizing text content for Large Language Model (LLM) consumption by removing boilerplate, website chrome, and irrelevant elements.
@@ -112,12 +112,12 @@ python generate_training_data.py -i ./optimized-content.md -f instruction
 git clone https://github.com/yourusername/content-optimiser.git
 cd content-optimiser
 
-# Optional but recommended: Set up a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Set up a virtual environment (required)
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ## 📚 Usage Examples
