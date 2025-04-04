@@ -119,18 +119,38 @@ class ContentHelperBase(ABC):
         Returns:
             tuple: (processed_content, stats)
         """
+        # Handle None input
+        if file_path is None:
+            return "", {"error": "Invalid file path (None)"}
+            
         # Read content if not provided
         if content is None:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+            except Exception as e:
+                return "", {"error": f"File read error: {str(e)}"}
+        
+        # Handle empty content
+        if not content:
+            return "", {"empty_file": 1}
         
         # Apply the full pipeline
-        preprocessed = self.preprocess_content(content, file_path)
-        optimized, opt_stats = self.optimize_content(preprocessed, file_path)
-        final = self.postprocess_content(optimized, file_path)
-        
-        # Update statistics
-        self.stats["files_processed"] += 1
-        self.stats["optimizations_applied"] += sum(opt_stats.values())
-        
-        return final, opt_stats
+        try:
+            preprocessed = self.preprocess_content(content, file_path)
+            optimized, opt_stats = self.optimize_content(preprocessed, file_path)
+            final = self.postprocess_content(optimized, file_path)
+            
+            # Update statistics
+            self.stats["files_processed"] += 1
+            self.stats["optimizations_applied"] += sum(opt_stats.values() if isinstance(opt_stats, dict) else 0)
+            
+            # Ensure we never return None
+            if final is None:
+                final = ""
+                opt_stats["error"] = "Postprocessing returned None content"
+                
+            return final, opt_stats
+        except Exception as e:
+            # Return empty string with error info rather than None
+            return "", {"error": f"Processing error: {str(e)}"}

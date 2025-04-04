@@ -353,10 +353,91 @@ def generate_directory_tree(file_paths: list[str], clean_notion_ids: bool = Fals
     Generates a Markdown code block containing a textual representation
     of the directory structure based on the provided list of relative file paths.
     """
-    # ... existing code ...
-    # This function can use the existing implementation from your code
+    # Check if any file paths are provided
+    if not file_paths:
+        return "```\nNo files found\n```"
+    
+    # Create a tree structure from the file paths
+    tree = {}
+    for path in file_paths:
+        # Handle potential None values in file paths
+        if path is None:
+            continue
+            
+        # Use cleaned path if processing Notion content
+        if clean_notion_ids:
+            try:
+                from content_helpers.notion_helper import extract_notion_id
+                parts = []
+                for part in path.split('/'):
+                    clean_name, _ = extract_notion_id(part)
+                    parts.append(clean_name if clean_name is not None else part)
+                path = '/'.join(parts)
+            except (ImportError, AttributeError):
+                # Fall back to original path if Notion helper not available
+                pass
+                
+        # Split path into components
+        parts = path.split('/')
+        current = tree
+        for part in parts[:-1]:  # Process directories
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        # Add the file (leaf node)
+        if parts[-1]:
+            current[parts[-1]] = None
 
-# --- Main Processing Logic ---
+    # Generate the tree representation
+    lines = ["```"]
+    
+    # Handle empty tree edge case
+    if not tree:
+        lines.append("No valid directory structure found")
+        lines.append("```")
+        return "\n".join(lines)
+    
+    def print_tree(node, prefix="", is_last=True, is_root=False):
+        items = list(node.items())
+        if not items:  # Handle empty node edge case
+            return
+            
+        if not is_root:
+            connector = "└── " if is_last else "├── "
+            lines.append(f"{prefix}{connector}{items[0][0]}")
+            prefix += "    " if is_last else "│   "
+            items = items[1:]
+        
+        count = len(items)
+        for i, (name, subtree) in enumerate(items):
+            is_directory = subtree is not None and isinstance(subtree, dict)
+            is_last_item = (i == count - 1)
+            
+            if is_directory:
+                connector = "└── " if is_last_item else "├── "
+                lines.append(f"{prefix}{connector}{name}/")
+                new_prefix = prefix + ("    " if is_last_item else "│   ")
+                subdir_items = list(subtree.items())
+                for j, (subname, subsubtree) in enumerate(subdir_items):
+                    is_last_subitem = (j == len(subdir_items) - 1)
+                    if subsubtree is None:  # File
+                        lines.append(f"{new_prefix}{'└── ' if is_last_subitem else '├── '}{subname}")
+                    else:  # Directory
+                        print_tree(
+                            {subname: subsubtree}, 
+                            new_prefix, 
+                            is_last=is_last_subitem,
+                            is_root=True
+                        )
+            else:  # File
+                connector = "└── " if is_last_item else "├── "
+                lines.append(f"{prefix}{connector}{name}")
+    
+    # Start the tree from the root
+    print_tree(tree, is_root=True)
+    lines.append("```")
+    
+    return "\n".join(lines)
 
 def process_with_content_helpers(input_dir: str, output_filename: str, mode: str, report_filename: str,
                                 scan_extensions: set[str], scan_ignore_patterns: list[str], 
@@ -480,14 +561,22 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
     # Add directory structure
     try:
         dir_structure = generate_directory_tree(file_paths, clean_notion_ids=(mode == "notion"))
-        processed_content_sections.append("# Directory Structure")
-        processed_content_sections.append(dir_structure)
-        processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
-        processed_content_sections.append("# Files")
-        processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+        if dir_structure:  # Make sure we have a valid directory structure
+            processed_content_sections.append("# Directory Structure")
+            processed_content_sections.append(dir_structure)
+            processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+            processed_content_sections.append("# Files")
+            processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
+        else:
+            # Add a placeholder if directory structure generation failed
+            processed_content_sections.append("# Files")
+            processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
     except Exception as e:
         processing_warnings.append(f"Failed to generate directory tree: {str(e)}")
         print_warning(f"Failed to generate directory tree: {e}")
+        # Add fallback sections
+        processed_content_sections.append("# Files")
+        processed_content_sections.append(OPTIMIZED_SECTION_SEPARATOR)
         # Continue processing even if directory tree generation fails
 
     # Set up tracking for original content to calculate tokens
@@ -501,6 +590,10 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
         if TQDM_AVAILABLE:
             progress_bar.set_description(f"Optimizing {rel_path}")
         
+        # Skip None values in file paths
+        if rel_path is None:
+            continue
+            
         file_path = os.path.join(input_dir, rel_path)
         
         try:
@@ -536,9 +629,14 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
                     if isinstance(count, (int, float)):
                         aggregated_stats[stat_name] += count
 
-                # Add to processed content
-                processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
-                processed_content_sections.append(optimized_content)
+                # Add to processed content - ensure no None values
+                if optimized_content is not None:
+                    processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
+                    processed_content_sections.append(optimized_content)
+                else:
+                    processed_content_sections.append(OPTIMIZED_FILE_SEPARATOR_FORMAT.format(file_path=rel_path))
+                    processed_content_sections.append("Content optimization failed - empty or invalid result")
+                    processing_warnings.append(f"Empty or invalid result for {rel_path}")
                 files_processed += 1
             except Exception as e:
                 error_msg = f"Helper processing error on {rel_path}: {e}"
@@ -567,7 +665,8 @@ def process_with_content_helpers(input_dir: str, output_filename: str, mode: str
             processing_warnings.append(f"Token counting failed: {e}")
             original_tokens = -1
 
-    # Assemble final content
+    # Assemble final output - filter out None values
+    processed_content_sections = [section for section in processed_content_sections if section is not None]
     final_output = "\n\n".join(processed_content_sections)
     optimized_chars = len(final_output)
     

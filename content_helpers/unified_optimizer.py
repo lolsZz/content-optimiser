@@ -97,6 +97,12 @@ class UnifiedOptimizer:
         start_time = time.time()
         result_stats = {}
         
+        # Return empty result for None or non-existent file paths
+        if file_path is None or not os.path.exists(file_path):
+            error_msg = f"Invalid file path: {file_path}"
+            self.stats["errors"].append(error_msg)
+            return "", {"error": error_msg}
+        
         # Detect content type if not forced
         if force_mode:
             content_type = force_mode
@@ -114,7 +120,12 @@ class UnifiedOptimizer:
                     content = f.read()
             except Exception as e:
                 self.stats["errors"].append(f"Error reading {file_path}: {str(e)}")
-                return None, {"error": str(e)}
+                return "", {"error": str(e)}
+        
+        # Handle empty content case
+        if not content:
+            self.stats["files_processed"] += 1
+            return "", {"empty_file": 1}
         
         # Get the appropriate helper and process
         try:
@@ -130,12 +141,18 @@ class UnifiedOptimizer:
             result_stats.update(opt_stats)
             result_stats["processing_time"] = processing_time
             
+            # Ensure we never return None
+            if optimized_content is None:
+                optimized_content = ""
+                result_stats["error"] = "Helper returned None content"
+                
             return optimized_content, result_stats
         except Exception as e:
             error_msg = f"Error processing {file_path} with {content_type} helper: {str(e)}"
             self.stats["errors"].append(error_msg)
             self.stats["detection_failures"] += 1
-            return content, {"error": error_msg}
+            # Return original content on error rather than None
+            return content or "", {"error": error_msg}
     
     def optimize_directory(self, directory_path, force_mode=None, extensions=None, ignore_patterns=None):
         """
