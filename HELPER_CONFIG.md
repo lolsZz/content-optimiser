@@ -78,6 +78,51 @@ python generate_training_data.py -i "./optimized-*.md" -f general --output_forma
 }
 ```
 
+### Amazon Q Completion Format
+
+To generate training data compatible with Amazon Q, you can use a custom configuration file:
+
+```json
+{
+  "schema_version": "1.0",
+  "completion_type": "code",
+  "specifications": {
+    "tool_name": "AmazonQCompletions",
+    "model_id": "amazon.titan-code-generator-v1",
+    "training_data_format": {
+      "format_type": "completion",
+      "input_field": "prefix",
+      "output_field": "completion",
+      "metadata_fields": [
+        "language",
+        "source_file",
+        "file_context"
+      ]
+    }
+  },
+  "conversion_settings": {
+    "output_format": "jsonl",
+    "token_limit": {
+      "min_input_tokens": 30,
+      "max_input_tokens": 512,
+      "max_output_tokens": 1024
+    }
+  }
+}
+```
+
+You can then generate Amazon Q compatible data with:
+
+```bash
+python generate_training_data.py -i ./optimized-code.md -f completion \
+  -c ./amazonq-completion-specs.json -o ./amazonq-data
+```
+
+The output will be in JSONL format with each example having:
+- `prefix`: The code context/prompt
+- `completion`: The generated code completion
+- Metadata: language, source_file, file_context
+
 ### Advanced Configuration
 
 You can create a JSON configuration file with custom settings:

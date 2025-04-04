@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "completion_type": "code",
+  "specifications": {
+    "tool_name": "AmazonQCompletions",
+    "tool_version": "1.0",
+    "model_id": "amazon.titan-code-generator-v1",
+    "guardrails": {
+      "banned_topics": [
+        "illegal activities",
+        "hate speech",
+        "discrimination",
+        "harmful content"
+      ],
+      "sensitive_information": {
+        "pii": "redact",
+        "credentials": "reject"
+      },
+      "safety_filters": {
+        "enable_content_filtering": true,
+        "block_unsafe_inputs": true,
+        "block_unsafe_outputs": true
+      }
+    },
+    "supported_languages": [
+      "python",
+      "javascript",
+      "typescript",
+      "java",
+      "csharp",
+      "go",
+      "rust",
+      "php",
+      "ruby"
+    ],
+    "completion_parameters": {
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "max_tokens": 1024,
+      "stop_sequences": ["```"],
+      "include_stop_sequence": false
+    },
+    "prompting_guide": {
+      "instructions": "Submit incomplete code snippets to generate code completions.",
+      "examples": [
+        {
+          "input": "def calculate_fibonacci(n):\n    # Function to calculate the nth Fibonacci number",
+          "output": "def calculate_fibonacci(n):\n    # Function to calculate the nth Fibonacci number\n    if n <= 0:\n        return 0\n    elif n == 1:\n        return 1\n    else:\n        a, b = 0, 1\n        for _ in range(2, n + 1):\n            a, b = b, a + b\n        return b"
+        }
+      ]
+    },
+    "training_data_format": {
+      "format_type": "completion",
+      "input_field": "prefix",
+      "output_field": "completion",
+      "metadata_fields": [
+        "language",
+        "source_file",
+        "file_context"
+      ]
+    }
+  },
+  "conversion_settings": {
+    "output_format": "jsonl",
+    "token_limit": {
+      "min_input_tokens": 30,
+      "max_input_tokens": 512,
+      "max_output_tokens": 1024
+    },
+    "filtering": {
+      "skip_non_code_examples": true,
+      "require_complete_syntax": true
+    }
+  },
+  "processing_instructions": {
+    "extract_function_level_examples": true,
+    "context_window_size": 5,
+    "remove_comments": false,
+    "deduplicate_examples": true,
+    "randomize_example_order": false
+  }
+}
