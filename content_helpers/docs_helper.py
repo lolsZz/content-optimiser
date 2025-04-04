@@ -152,39 +152,47 @@ class DocsHelper(ContentHelperBase):
     
     def optimize_content(self, content_data, file_path=None):
         """
-        Apply documentation-specific optimizations.
+        Apply documentation-specific optimizations to content.
         
         Args:
-            content_data: Preprocessed content dictionary or raw string
+            content_data: Dictionary with content and metadata from preprocessing
             file_path: Optional path to the file (for context)
             
         Returns:
             tuple: (optimized_content, optimization_stats)
         """
-        if not isinstance(content_data, dict):
-            # Handle case where content wasn't preprocessed
-            content = content_data
-            code_blocks = re.findall(DOC_CODE_BLOCK_PATTERN, content)
-        else:
-            content = content_data['content']
-            code_blocks = content_data.get('code_blocks', [])
-            file_path = content_data.get('file_path', file_path)
-        
+        # Extract content from data structure
+        content = content_data.get('content', '')
         if not content:
             return content, {}
-        
+            
         result = content
         stats = defaultdict(int)
+        code_blocks = content_data.get('code_blocks', [])
         
-        # Store code blocks for later reinsertion if necessary
+        # Replace code blocks with placeholders to protect them during optimization
         code_block_placeholders = {}
         if code_blocks:
-            # Replace code blocks with placeholders to protect them during optimization
             for i, block in enumerate(code_blocks):
                 placeholder = f"__CODE_BLOCK_{i}__"
                 code_block_placeholders[placeholder] = block
                 result = result.replace(block, placeholder)
         
+        # Remove duplicate headings (identical headings repeated consecutively)
+        new_content, count = DUPLICATE_HEADING_PATTERN.subn(r'\1', result) if 'DUPLICATE_HEADING_PATTERN' in globals() else (result, 0)
+        if count > 0:
+            result = new_content
+            stats["Duplicate Headings Removed"] = count
+            self.stats["helper_specific_data"]["duplicate_headings_removed"] = self.stats["helper_specific_data"].get("duplicate_headings_removed", 0) + count
+        
+        # Handle enhanced form content pattern
+        if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
+            new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Form Content Removed"] = count
+                self.stats["helper_specific_data"]["forms_removed"] = self.stats["helper_specific_data"].get("forms_removed", 0) + count
+                
         # Remove table of contents unless configured to keep
         if not self.preserve_toc:
             new_content, count = DOC_TOC_SECTION.subn('', result)

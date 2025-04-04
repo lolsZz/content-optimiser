@@ -259,6 +259,20 @@ class NotionHelper(ContentHelperBase):
                 result = new_content
                 stats["Notion Toggles"] = count
         
+        # Remove duplicate headings (identical headings repeated consecutively)
+        if 'DUPLICATE_HEADING_PATTERN' in globals():
+            new_content, count = DUPLICATE_HEADING_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Duplicate Headings"] = count
+        
+        # Handle enhanced form content pattern
+        if 'ENHANCED_FORM_CONTENT_PATTERN' in globals():
+            new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn(r'\1', result)
+            if count > 0:
+                result = new_content
+                stats["Form Content"] = count
+        
         return result, dict(stats)
     
     def _simplify_callout(self, match):

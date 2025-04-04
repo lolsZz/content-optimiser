@@ -15,20 +15,19 @@ class ContentHelperBase(ABC):
     and implement its abstract methods.
     """
     
-    def __init__(self, name="Generic", **kwargs):
-        """
-        Initialize the helper.
-        
-        Args:
-            name: Name of the helper (for reporting)
-            **kwargs: Additional configuration parameters
-        """
+    def __init__(self, name="BaseHelper", **kwargs):
+        """Initialize helper with name and optional configuration."""
         self.name = name
-        self.config = kwargs
+        
+        # Initialize statistics tracking
         self.stats = {
             "files_processed": 0,
             "optimizations_applied": 0,
-            "helper_specific_data": {}
+            "helper_specific_data": {
+                "duplicates_removed": 0,
+                "duplicate_headings_removed": 0,  # New stat for duplicate headings
+                "forms_removed": 0,  # New stat for forms
+            }
         }
     
     @abstractmethod

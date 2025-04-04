@@ -156,6 +156,44 @@ FORM_CONTENT_PATTERN = re.compile(
     re.DOTALL | re.MULTILINE | re.IGNORECASE
 )
 
+# Duplicate heading pattern - matches identical consecutive markdown headings
+DUPLICATE_HEADING_PATTERN = re.compile(
+    r'^(#+\s+.+?)\n+\1(?:\n+\1)*',  # Matches identical headings (including whitespace and #s) repeated consecutively
+    re.MULTILINE
+)
+
+# Enhanced Form Content Pattern - More comprehensive pattern to match form elements
+ENHANCED_FORM_CONTENT_PATTERN = re.compile(
+    r"(?:^|\n{2,})" # Start of block after blank lines
+    # Form Header/Title (Keep this part)
+    r"((?:Subscribe|Contact|Sign up|Join|Register|Booking|Enquiry|Get in Touch|Send Message|Newsletter|Email Updates|Updates on)[\s\w]*?)\n"
+    r"(?:[-=]{3,}\s*\n+)?" # Optional Underline
+
+    # Form Body - More comprehensive pattern to match form elements
+    r"(?P<form_body>" # Capture form body
+        r"(?:" # Start of elements group
+            # Required field indicator
+            r"(?:\*\s*indicates required[^\n]*\n+)"
+            # Form fields with labels (First Name, Last Name, Email, etc.)
+            r"|(?:\s*(?:First|Last)?\s*Name\s*(?:\*|\(required\))?\s*\n+)"
+            r"|(?:\s*Email\s*(?:Address)?\s*(?:\*|\(required\))?\s*\n+)"
+            r"|(?:\s*Phone\s*(?:Number)?\s*(?:\*|\(required\))?\s*\n+)"
+            r"|(?:\s*Message\s*(?:\*|\(required\))?\s*\n+)"
+            r"|(?:\s*Comments?\s*(?:\*|\(required\))?\s*\n+)"
+            # Bot prevention comment
+            r"|(?:/\*.*?real people should not fill this in.*?\*/\s*\n*)"
+            # GDPR messages and privacy notices
+            r"|(?:\s*Your\s+(?:data|privacy|information).*?important.*?\n+)"
+            r"|(?:\s*We\s+(?:do\s+not\s+share|use|collect).*?information.*?\n+)"
+            r"|(?:\s*You\s+can\s+unsubscribe.*?(?:anytime|at\s+any\s+time).*?\n+)"
+            # Submit buttons and form endings
+            r"|(?:\s*(?:Submit|Send|Register|Subscribe|Sign\s+Up).*?\n+)"
+        r")+" # Match one or more form elements
+    r")" # End of form body capture group
+    r"(?:\s*Archives)?", # Optional "Archives" text often found after forms
+    re.DOTALL | re.MULTILINE | re.IGNORECASE
+)
+
 # --- Notion Export Specific Patterns ---
 
 # Notion ID pattern (32 hex characters, typically preceded by space or underscore)
@@ -217,6 +255,10 @@ OPTIMIZATION_RULES_ORDERED = [
 
     # 5. Final Formatting Cleanup (Applied last in this list or separately)
     ("Zero Width Space", ZERO_WIDTH_SPACE_PATTERN),
+
+    # 6. New Patterns
+    ("Duplicate Headings", DUPLICATE_HEADING_PATTERN),
+    ("Enhanced Form Content", ENHANCED_FORM_CONTENT_PATTERN),
 ]
 
 # Add the Notion rules to the ordered list, but only apply when in notion mode

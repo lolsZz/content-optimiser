@@ -20,6 +20,8 @@ MD_IMAGE_LINK = re.compile(r'!\[.*?\]\(.*?\)')
 MD_BADGE = re.compile(r'(?:<img|!\[).*?(?:badge|shield).*?(?:>|\))')
 MD_REDUNDANT_LINK = re.compile(r'\[([^\]]+)\]\(\1\)')
 MD_RELATIVE_LINK = re.compile(r'\[([^\]]+)\]\((?!https?://|mailto:|ftp://|#)([^)]+)\)')
+DUPLICATE_HEADING_PATTERN = re.compile(r'^(#{1,6}\s+.+)\n\1$', re.MULTILINE)
+ENHANCED_FORM_CONTENT_PATTERN = re.compile(r'<form\b[^>]*>.*?</form>', re.DOTALL)
 
 class MarkdownHelper(ContentHelperBase):
     """
@@ -47,6 +49,8 @@ class MarkdownHelper(ContentHelperBase):
         self.stats["helper_specific_data"]["badges_removed"] = 0
         self.stats["helper_specific_data"]["redundant_links_fixed"] = 0
         self.stats["helper_specific_data"]["relative_links_fixed"] = 0
+        self.stats["helper_specific_data"]["duplicate_headings_removed"] = 0
+        self.stats["helper_specific_data"]["forms_removed"] = 0
     
     def detect_content_type(self, file_path, content=None):
         """
@@ -228,6 +232,20 @@ class MarkdownHelper(ContentHelperBase):
                 result = new_content
                 stats["Relative Links Fixed"] = count
                 self.stats["helper_specific_data"]["relative_links_fixed"] += count
+        
+        # Remove duplicate headings (identical headings repeated consecutively)
+        new_content, count = DUPLICATE_HEADING_PATTERN.subn(r'\1', result)
+        if count > 0:
+            result = new_content
+            stats["Duplicate Headings Removed"] = count
+            self.stats["helper_specific_data"]["duplicate_headings_removed"] += count
+        
+        # Handle enhanced form content pattern
+        new_content, count = ENHANCED_FORM_CONTENT_PATTERN.subn('', result)
+        if count > 0:
+            result = new_content
+            stats["Form Content Removed"] = count
+            self.stats["helper_specific_data"]["forms_removed"] += count
         
         return result, dict(stats)
     
