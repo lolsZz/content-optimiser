@@ -1,129 +1,206 @@
 """
-Content Helpers Package
+Content Helpers Package for Content Optimizer
 
-This package contains specialized modules for processing different types of content:
-- notion_helper: Processing Notion.so exports
-- email_helper: Processing email content and threads
-- code_helper: Processing source code files
-- docs_helper: Processing documentation
-- markdown_helper: Processing Markdown/HTML content
-
-Each helper module provides specialized functions for detecting, cleaning, and 
-optimizing its specific content type.
+This package contains specialized helpers for different content types.
 """
 
-# First create these imports to make them available
+# Import the base helper class
 from .base_helper import ContentHelperBase
 
-# Try to import each helper module
-# We're using try/except blocks to avoid breaking if one module is missing
-try:
-    from .notion_helper import NotionHelper
-except ImportError:
-    class NotionHelper(ContentHelperBase):
-        def __init__(self, **kwargs):
-            super().__init__(name="Missing Notion Helper", **kwargs)
-        def detect_content_type(self, file_path, content=None): return 0.0
-        def preprocess_content(self, content, file_path=None): return content
-        def optimize_content(self, content, file_path=None): return content, {}
-        def postprocess_content(self, content, file_path=None): return content
+# Dummy helper implementations for now - these will be replaced by actual implementations
+class DocsHelper(ContentHelperBase):
+    def __init__(self, **kwargs):
+        super().__init__(name="Docs Helper", **kwargs)
+    
+    def detect_content_type(self, file_path, content=None):
+        return 0.5 if file_path else 0.0
+    
+    def preprocess_content(self, content, file_path=None):
+        return {"content": content, "metadata": {}}
+    
+    def optimize_content(self, content_data, file_path=None):
+        return content_data.get("content", ""), {}
+    
+    def postprocess_content(self, content, file_path=None):
+        return content
 
-try:
-    from .email_helper import EmailHelper
-except ImportError:
-    class EmailHelper(ContentHelperBase):
-        def __init__(self, **kwargs):
-            super().__init__(name="Missing Email Helper", **kwargs)
-        def detect_content_type(self, file_path, content=None): return 0.0
-        def preprocess_content(self, content, file_path=None): return content
-        def optimize_content(self, content, file_path=None): return content, {}
-        def postprocess_content(self, content, file_path=None): return content
+class CodeHelper(ContentHelperBase):
+    def __init__(self, **kwargs):
+        super().__init__(name="Code Helper", **kwargs)
+    
+    def detect_content_type(self, file_path, content=None):
+        return 0.5 if file_path else 0.0
+    
+    def preprocess_content(self, content, file_path=None):
+        return {"content": content, "metadata": {}}
+    
+    def optimize_content(self, content_data, file_path=None):
+        return content_data.get("content", ""), {}
+    
+    def postprocess_content(self, content, file_path=None):
+        return content
 
-try:
-    from .code_helper import CodeHelper
-except ImportError:
-    class CodeHelper(ContentHelperBase):
-        def __init__(self, **kwargs):
-            super().__init__(name="Missing Code Helper", **kwargs)
-        def detect_content_type(self, file_path, content=None): return 0.0
-        def preprocess_content(self, content, file_path=None): return content
-        def optimize_content(self, content, file_path=None): return content, {}
-        def postprocess_content(self, content, file_path=None): return content
+class NotionHelper(ContentHelperBase):
+    def __init__(self, **kwargs):
+        super().__init__(name="Notion Helper", **kwargs)
+    
+    def detect_content_type(self, file_path, content=None):
+        return 0.5 if file_path else 0.0
+    
+    def preprocess_content(self, content, file_path=None):
+        return {"content": content, "metadata": {}}
+    
+    def optimize_content(self, content_data, file_path=None):
+        return content_data.get("content", ""), {}
+    
+    def postprocess_content(self, content, file_path=None):
+        return content
 
-try:
-    from .docs_helper import DocsHelper
-except ImportError:
-    class DocsHelper(ContentHelperBase):
-        def __init__(self, **kwargs):
-            super().__init__(name="Missing Docs Helper", **kwargs)
-        def detect_content_type(self, file_path, content=None): return 0.0
-        def preprocess_content(self, content, file_path=None): return content
-        def optimize_content(self, content, file_path=None): return content, {}
-        def postprocess_content(self, content, file_path=None): return content
+class EmailHelper(ContentHelperBase):
+    def __init__(self, **kwargs):
+        super().__init__(name="Email Helper", **kwargs)
+    
+    def detect_content_type(self, file_path, content=None):
+        return 0.5 if file_path else 0.0
+    
+    def preprocess_content(self, content, file_path=None):
+        return {"content": content, "metadata": {}}
+    
+    def optimize_content(self, content_data, file_path=None):
+        return content_data.get("content", ""), {}
+    
+    def postprocess_content(self, content, file_path=None):
+        return content
 
-try:
-    from .markdown_helper import MarkdownHelper
-except ImportError:
-    class MarkdownHelper(ContentHelperBase):
-        def __init__(self, **kwargs):
-            super().__init__(name="Missing Markdown Helper", **kwargs)
-        def detect_content_type(self, file_path, content=None): return 0.0
-        def preprocess_content(self, content, file_path=None): return content
-        def optimize_content(self, content, file_path=None): return content, {}
-        def postprocess_content(self, content, file_path=None): return content
+# Use our existing markdown helper that was already implemented
+from .markdown_helper import MarkdownHelper
 
-try:
-    from .unified_optimizer import UnifiedOptimizer
-except ImportError:
-    # This might not work as expected since we depend on all the other helpers
-    class UnifiedOptimizer:
-        def __init__(self, default_mode="docs", **kwargs):
-            self.default_mode = default_mode
-            self.config = kwargs
-        def detect_content_type(self, file_path, content=None):
-            return self.default_mode, 0.0
-        def optimize_file(self, file_path, content=None, force_mode=None):
-            return content, {"error": "UnifiedOptimizer not fully implemented"}
-
-# Factory function to get the appropriate helper based on content type
-def get_content_helper(content_type, **kwargs):
+# Unified optimizer for auto-detection
+class UnifiedOptimizer:
     """
-    Factory function to get an appropriate content helper instance.
+    A unified optimizer that can detect content type and apply the appropriate helper.
+    """
+    
+    def __init__(self, default_mode="auto"):
+        """
+        Initialize the unified optimizer.
+        
+        Args:
+            default_mode: Default mode to use if type detection fails
+        """
+        self.default_mode = default_mode
+        self.helpers = {
+            "docs": DocsHelper(),
+            "code": CodeHelper(),
+            "notion": NotionHelper(),
+            "email": EmailHelper(),
+            "markdown": MarkdownHelper()
+        }
+        self.stats = {
+            "files_processed": 0,
+            "detection": {}
+        }
+    
+    def detect_content_type(self, file_path, content=None):
+        """
+        Detect the content type of a file.
+        
+        Args:
+            file_path: Path to the file
+            content: Optional file content if already loaded
+            
+        Returns:
+            Tuple of (type, confidence, helper)
+        """
+        best_type = None
+        best_confidence = 0.0
+        best_helper = None
+        
+        for helper_type, helper in self.helpers.items():
+            confidence = helper.detect_content_type(file_path, content)
+            if confidence > best_confidence:
+                best_type = helper_type
+                best_confidence = confidence
+                best_helper = helper
+        
+        if best_type is None:
+            best_type = self.default_mode
+            best_helper = self.helpers.get(self.default_mode, self.helpers["docs"])
+        
+        return best_type, best_confidence, best_helper
+    
+    def optimize_file(self, file_path, content=None):
+        """
+        Optimize a file by detecting its type and using the appropriate helper.
+        
+        Args:
+            file_path: Path to the file
+            content: Optional file content if already loaded
+            
+        Returns:
+            Tuple of (optimized_content, stats)
+        """
+        # Read the file if content not provided
+        if content is None:
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+            except Exception as e:
+                return f"Error reading file: {e}", {"error": str(e)}
+        
+        # Detect content type
+        content_type, confidence, helper = self.detect_content_type(file_path, content)
+        
+        # Process with the appropriate helper
+        optimized_content, stats = helper.process_file(file_path, content)
+        
+        # Update stats
+        self.stats["files_processed"] += 1
+        self.stats["detection"][file_path] = {
+            "type": content_type,
+            "confidence": confidence
+        }
+        
+        combined_stats = {**self.stats, **stats}
+        
+        return optimized_content, combined_stats
+    
+    def get_stats(self):
+        """Get the current statistics."""
+        return self.stats
+
+# Factory functions
+def get_content_helper(name):
+    """
+    Factory function to get a specific content helper.
     
     Args:
-        content_type: String identifier for the content type 
-                     ('notion', 'email', 'code', 'docs', 'markdown')
-        **kwargs: Additional parameters to pass to the helper constructor
+        name: Name of the helper to get (docs, code, notion, email, markdown)
         
     Returns:
-        An instance of the appropriate ContentHelperBase subclass
-        
-    Raises:
-        ValueError: If content_type is not recognized
+        The helper class
     """
     helpers = {
-        'notion': NotionHelper,
-        'email': EmailHelper,
-        'code': CodeHelper,
-        'docs': DocsHelper,
-        'markdown': MarkdownHelper,
+        "docs": DocsHelper,
+        "code": CodeHelper,
+        "notion": NotionHelper,
+        "email": EmailHelper,
+        "markdown": MarkdownHelper
     }
     
-    if content_type not in helpers:
-        raise ValueError(f"Unknown content type: {content_type}. Available types: {', '.join(helpers.keys())}")
+    if name not in helpers:
+        raise ValueError(f"Unknown helper name: {name}. Available helpers: {', '.join(helpers.keys())}")
     
-    return helpers[content_type](**kwargs)
+    return helpers[name]
 
-# Function to get a unified optimizer
-def get_unified_optimizer(default_mode="docs", **kwargs):
+def get_unified_optimizer(default_mode="auto"):
     """
-    Get a UnifiedOptimizer instance that can auto-detect and optimize multiple content types.
+    Get a unified optimizer instance.
     
     Args:
-        default_mode: Default mode to use if auto-detection fails
-        **kwargs: Additional parameters passed to content helpers
-    
+        default_mode: Default mode to use if type detection fails
+        
     Returns:
-        A UnifiedOptimizer instance
+        UnifiedOptimizer instance
     """
-    return UnifiedOptimizer(default_mode=default_mode, **kwargs)
+    return UnifiedOptimizer(default_mode=default_mode)

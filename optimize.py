@@ -107,7 +107,7 @@ except ImportError:
 VERSION = "2.0.0"
 DEFAULT_MODE = "docs"
 SUPPORTED_MODES = ["code", "docs", "notion", "email", "markdown", "auto"]
-DEFAULT_SCAN_EXTENSIONS = ".py,.md,.ipynb,.sh,.yaml,.yml,.toml,.json,.css,.js,.ts,.html,.txt,.rst"
+DEFAULT_SCAN_EXTENSIONS = ".py,.md,.mdc,.cursorrules,.ipynb,.sh,.yaml,.yml,.toml,.json,.css,.js,.ts,.html,.txt,.rst"
 DEFAULT_IGNORE_PATTERNS = ".git,.hg,.svn,build,dist,node_modules,__pycache__,*.pyc,*.log,.DS_Store,.env*,.vscode,.idea,.venv,venv,*.bin,*.img,*.jpg,*.jpeg,*.png,*.gif,*.zip,*.tar.gz,*.pdf,*.doc*,*.xls*,*.ppt*,*.o,*.so,*.a,*.dll,*.lib,*.class,*.jar,*.war,*.onnx,*.pb,*.pt,*.pth,*.h5,*.keras,*.sqlite,*.db"
 OPTIMIZED_SECTION_SEPARATOR = "================================================================"
 OPTIMIZED_FILE_SEPARATOR_FORMAT = "--- FILE: {file_path} ---"

@@ -141,7 +141,10 @@ Fine-tune which files are processed when scanning directories:
 
 ```bash
 # Include only specific file types
-python optimize.py -d ./content --extensions .md,.txt,.html,.rst
+python optimize.py -d ./content --extensions .md,.mdc,.cursorrules,.txt,.html
+
+# Include CursorRules files
+python optimize.py -d ./cursor-rules-content --extensions .cursorrules,.mdc
 
 # Ignore specific patterns
 python optimize.py -d ./content --ignore "draft/,*-old.md,_archive/,temp/"
@@ -252,13 +255,14 @@ python optimize.py -d ./documentation -m docs
 
 ### Markdown Helper
 
-**Purpose**: Optimizes Markdown and HTML content with focus on content.
+**Purpose**: Optimizes Markdown and related markup files with focus on content.
 
 **Key Features**:
-- Handles mixed Markdown and HTML content
+- Handles Markdown (.md), MDC (.mdc), and CursorRules (.cursorrules) files
 - Cleans unnecessary HTML while preserving structure
 - Processes images, links, and formatting
-- Handles YAML frontmatter
+- Handles YAML frontmatter and specialized metadata
+- Applies conservative optimization for MDC and CursorRules files
 
 **Usage**:
 ```bash

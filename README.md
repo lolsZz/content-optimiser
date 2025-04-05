@@ -27,7 +27,7 @@ The tool can greatly reduce token usage and improve context quality by removing 
   - `code`: Conservative optimization for source code repositories
   - `notion`: Specialized handling for Notion.so exports
   - `email`: Optimized for email content and threads
-  - `markdown`: Enhanced for Markdown and HTML content
+  - `markdown`: Enhanced for Markdown, MDC, and CursorRules content
 - **Language-Aware Code Processing**:
   - Automatic programming language detection
   - Language-specific optimization rules
